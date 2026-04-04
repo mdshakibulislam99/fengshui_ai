@@ -1,0 +1,354 @@
+:root {
+    --wp-bg: #f4f8ff;
+    --wp-ink: #0d1b3a;
+    --wp-muted: #4c5b7c;
+    --wp-line: #c9d4e9;
+    --wp-card: #ffffff;
+    --wp-accent: #0ea5e9;
+    --wp-accent2: #0369a1;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: 'Sora', sans-serif;
+    color: var(--wp-ink);
+    background: radial-gradient(circle at 10% 10%, #dbeafe, transparent 45%), radial-gradient(circle at 90% 10%, #cffafe, transparent 45%), var(--wp-bg);
+}
+
+.weather-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: linear-gradient(to right, rgba(13, 27, 58, 0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(13, 27, 58, 0.03) 1px, transparent 1px);
+    background-size: 28px 28px;
+}
+
+.weather-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 18px 28px;
+}
+
+.weather-hero .kicker {
+    margin: 0;
+    color: var(--wp-accent2);
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    font-size: 12px;
+}
+
+.weather-hero h1 {
+    margin: 8px 0 10px;
+    font-size: clamp(28px, 4vw, 46px);
+    line-height: 1.05;
+}
+
+.weather-hero .sub {
+    margin: 0 0 16px;
+    max-width: 760px;
+    color: var(--wp-muted);
+}
+
+.weather-search {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.weather-search input {
+    flex: 1 1 260px;
+    min-width: 200px;
+    border: 1px solid var(--wp-line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font: inherit;
+}
+
+.weather-search button {
+    border: none;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    background: linear-gradient(120deg, var(--wp-accent), var(--wp-accent2));
+    color: white;
+    box-shadow: 0 8px 18px rgba(3, 105, 161, 0.28);
+}
+
+.weather-search .ghost {
+    background: white;
+    color: var(--wp-ink);
+    border: 1px solid var(--wp-line);
+    box-shadow: none;
+}
+
+.status-row {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.status-chip {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(3, 105, 161, 0.35);
+    background: rgba(255, 255, 255, 0.8);
+    color: #0c4a6e;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.status-chip.muted {
+    border-color: rgba(76, 91, 124, 0.35);
+    color: var(--wp-muted);
+}
+
+.quick-controls {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.unit-toggle {
+    border: 1px solid var(--wp-line);
+    border-radius: 10px;
+    overflow: hidden;
+    display: inline-flex;
+    background: #fff;
+}
+
+.unit-btn {
+    border: none;
+    background: transparent;
+    color: var(--wp-muted);
+    padding: 6px 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.unit-btn.active {
+    background: linear-gradient(120deg, var(--wp-accent), var(--wp-accent2));
+    color: #fff;
+}
+
+.weather-grid {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: 1.05fr .95fr;
+    gap: 14px;
+}
+
+.card {
+    background: var(--wp-card);
+    border: 1px solid var(--wp-line);
+    border-radius: 16px;
+    padding: 14px;
+    box-shadow: 0 10px 26px rgba(13, 27, 58, 0.12);
+}
+
+.current-card {
+    min-height: 240px;
+    background: linear-gradient(145deg, #ffffff 0%, #eef5ff 100%);
+}
+
+.current-head {
+    display: flex;
+    justify-content: space-between;
+    color: var(--wp-muted);
+    font-size: 12px;
+    margin-bottom: 12px;
+}
+
+.mono {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.current-main {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    gap: 12px;
+    align-items: center;
+}
+
+.temp {
+    font-size: clamp(42px, 5vw, 68px);
+    font-weight: 800;
+    line-height: .95;
+}
+
+.condition {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.place {
+    margin-top: 4px;
+    color: var(--wp-muted);
+}
+
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.chips span {
+    border: 1px solid #f59e0b;
+    background: #fffbeb;
+    color: #92400e;
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: 12px;
+}
+
+.metrics-card h2,
+.highlights-card h2,
+.astronomy-card h2,
+.hourly-card h2,
+.daily-card h2 {
+    margin: 0 0 10px;
+    font-size: 18px;
+}
+
+.highlights-grid,
+.astro-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.highlight,
+.astro {
+    border: 1px solid rgba(14, 165, 233, 0.24);
+    border-radius: 12px;
+    padding: 10px;
+    background: linear-gradient(160deg, #f9fbff, #f0f7ff);
+}
+
+.highlight .label,
+.astro .label {
+    color: var(--wp-muted);
+    font-size: 12px;
+}
+
+.highlight .value,
+.astro .value {
+    margin-top: 3px;
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.metric-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.metric {
+    border: 1px solid rgba(14, 165, 233, 0.24);
+    border-radius: 12px;
+    padding: 10px;
+    background: linear-gradient(160deg, #f9fbff, #f0f7ff);
+}
+
+.metric .label {
+    display: block;
+    color: var(--wp-muted);
+    font-size: 12px;
+}
+
+.metric .value {
+    display: block;
+    margin-top: 4px;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.hourly-card,
+.daily-card {
+    grid-column: 1 / -1;
+}
+
+.hourly-strip {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(90px, 1fr);
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 4px;
+}
+
+.hour {
+    border: 1px solid var(--wp-line);
+    border-radius: 12px;
+    padding: 8px;
+    text-align: center;
+    background: linear-gradient(180deg, #ffffff, #f2f8ff);
+}
+
+.hour .t {
+    font-size: 12px;
+    color: var(--wp-muted);
+}
+
+.hour .v {
+    font-weight: 700;
+    font-size: 20px;
+}
+
+.daily-list {
+    display: grid;
+    gap: 8px;
+}
+
+.day {
+    display: grid;
+    grid-template-columns: 120px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--wp-line);
+    border-radius: 12px;
+    background: linear-gradient(180deg, #ffffff, #f2f8ff);
+}
+
+.day .date {
+    font-weight: 700;
+}
+
+.day .desc {
+    color: var(--wp-muted);
+    font-size: 14px;
+}
+
+.day .range {
+    font-weight: 700;
+}
+
+@media (max-width: 920px) {
+    .weather-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .metric-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .highlights-grid,
+    .astro-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .day {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+}

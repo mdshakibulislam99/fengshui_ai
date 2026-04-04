@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outdoor Analysis - QiMatrix Feng Shui AI</title>
+    <link rel="stylesheet" href="header.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="main-styles.css">
+    <link rel="stylesheet" href="outdoor-analysis-v2.css?v=20260330ds2">
+    <!-- AMap Web JS API - Key loaded from backend config -->
+    <script id="amap-script"></script>
+    <!-- AMap v2.0 security config — must be set BEFORE the map script loads -->
+    <script>
+        window._AMapSecurityConfig = { securityJsCode: 'e77df9c7c14d04324152237210cc9918' };
+    </script>
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="chatbot.css">
+    <link rel="stylesheet" href="components/weather.css">
+    <script src="header.js" defer></script>
+</head>
+<body>
+    <!-- Header loaded by components/header.js -->
+
+    <main class="ei-page">
+        <div class="ei-shell">
+            <section class="ei-two-column-layout">
+                <div class="ei-left-column">
+                    <div class="ei-hero card">
+                        <h1>Outdoor Feng Shui Urban Analysis</h1>
+                        <p>Analyze urban locations with AI-powered spatial and environmental intelligence.</p>
+
+                        <div class="controls-grid search-only">
+                            <div class="search-box">
+                                <label for="locationInput">Search Location</label>
+                                <div class="search-shell">
+                                    <form id="locationSearchForm" class="search-input-row" novalidate>
+                                        <span class="search-prefix" aria-hidden="true">
+                                            <svg class="search-prefix-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                                                <path d="M12 22C12 22 19 16.4 19 10.8C19 6.49 15.87 3 12 3C8.13 3 5 6.49 5 10.8C5 16.4 12 22 12 22Z" fill="currentColor"/>
+                                                <circle cx="12" cy="10" r="2.8" fill="white"/>
+                                            </svg>
+                                        </span>
+                                        <input type="text" id="locationInput" placeholder="Search city, district, or place" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                                        <button id="searchBtn" type="submit" class="btn-primary"><span aria-hidden="true">🔍</span> Search</button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div id="postSearchSettings" class="post-search-settings">
+                                <div class="selection-radius-row">
+                                    <div class="selection-mode-group">
+                                        <button id="locationModeBtn" class="mode-btn active" type="button">Select Location</button>
+                                        <button id="polygonBtn" class="mode-btn" type="button">Draw Area</button>
+                                        <button id="cancelPolygonBtn" class="mode-btn cancel-mode" type="button" style="display: none;">Cancel</button>
+                                    </div>
+
+                                    <div id="radiusControlWrap" class="radius-control">
+                                        <label for="radius">Analysis Radius: <span id="radiusValue">500</span> m</label>
+                                        <input type="range" id="radius" value="500" min="100" max="5000" step="100" class="radius-slider">
+                                    </div>
+                                </div>
+
+                                <div class="selected-location-row">
+                                    <div id="selectedLocationDisplay" class="location-display">
+                                        <span class="selected-location-icon" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                                                <path d="M12 22C12 22 19 16.4 19 10.8C19 6.49 15.87 3 12 3C8.13 3 5 6.49 5 10.8C5 16.4 12 22 12 22Z" fill="currentColor"/>
+                                                <circle cx="12" cy="10" r="2.8" fill="white"/>
+                                            </svg>
+                                        </span>
+                                        <span class="location-text-block">
+                                            <span class="location-name">Select location</span>
+                                            <span class="location-coords">( -- , -- )</span>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="analyze-action-row">
+                                    <button id="analyzeBtn" class="btn-primary" disabled>Analyze Location</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="map-column">
+                        <div class="card map-card">
+                            <div id="map-container"></div>
+                        </div>
+                        <div id="mapInsightsPanel" class="card map-insights hidden-state">
+                            <h3>Feng Shui AI Insights</h3>
+                            <p>Run an analysis to see six structured factors and a focused improvement plan.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="ei-right-column">
+                    <aside class="summary-column">
+                        <details class="summary-details" open>
+                            <summary>Analysis Summary</summary>
+                            <div id="summaryCard" class="card summary-card">
+                                <h2>Your Analysis</h2>
+                                <div class="summary-placeholder">
+                                    <div class="pre-analysis-icon">
+                                        <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="28" cy="28" r="23" stroke="currentColor" stroke-width="2" stroke-dasharray="5 4" opacity="0.22"/>
+                                            <circle cx="28" cy="28" r="13" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                                            <circle cx="28" cy="28" r="3.2" fill="currentColor"/>
+                                            <line x1="28" y1="5" x2="28" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                                            <line x1="28" y1="41" x2="28" y2="51" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                                            <line x1="5" y1="28" x2="15" y2="28" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                                            <line x1="41" y1="28" x2="51" y2="28" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                                        </svg>
+                                    </div>
+                                    <h3 class="pre-analysis-title">Ready to analyze</h3>
+                                    <p class="pre-analysis-desc">Select a location or draw an area to unlock your Feng Shui score insights.</p>
+                                    <div class="summary-empty-steps">
+                                        <span class="step-pill">1. Select</span>
+                                        <span class="step-pill">2. Analyze</span>
+                                        <span class="step-pill">3. Improve</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+                    </aside>
+
+                    <aside class="analysis-column">
+                        <div id="dashboard" class="dashboard-stack hidden-state">
+                            <div class="card placeholder-card">
+                                <h3>Environmental Analysis Dashboard</h3>
+                                <p>Use search or click the map to select a location. The dashboard will show numeric score breakdowns, missing factors, and actionable improvements.</p>
+                            </div>
+                        </div>
+                    </aside>
+
+                    <div id="aiPanelMount" class="card ai-panel hidden-state">
+                        <h3>AI Interpretation Panel</h3>
+                        <p>Run an analysis to view structured interpretation and improvement actions.</p>
+                    </div>
+                </aside>
+            </section>
+        </div>
+    </main>
+
+    <!-- Load AMap — tries backend config first, falls back to embedded key instantly -->
+    <script>
+        (function () {
+            // Fallback key used when backend is unreachable (map always loads)
+            var AMAP_FALLBACK_KEY = '7c5e5fe7003984294de6dbe69e506bcc';
+            var BACKEND_TIMEOUT_MS = 3000;
+
+            function loadAmapScript(key) {
+                return new Promise(function (resolve, reject) {
+                    var script = document.getElementById('amap-script');
+                    script.onload = function () {
+                        console.log('✅ AMap library loaded');
+                        resolve(true);
+                    };
+                    script.onerror = function () {
+                        reject(new Error('AMap script failed to load'));
+                    };
+                    script.src = 'https://webapi.amap.com/maps?v=2.0&key=' + key;
+                });
+            }
+
+            window.amapReady = (function () {
+                // Race: backend fetch vs timeout
+                var backendFetch = new Promise(function (resolve, reject) {
+                    var controller = new AbortController();
+                    var timeoutId = setTimeout(function () {
+                        controller.abort();
+                        reject(new Error('timeout'));
+                    }, BACKEND_TIMEOUT_MS);
+
+                    fetch('http://localhost:3000/api/config', { signal: controller.signal })
+                        .then(function (r) { return r.json(); })
+                        .then(function (cfg) {
+                            clearTimeout(timeoutId);
+                            var data = cfg && cfg.success && cfg.data;
+                            // Inject security key — required for AMap v2.0 Panorama + other plugins
+                            if (data && data.amap_security_key) {
+                                window._AMapSecurityConfig = { securityJsCode: data.amap_security_key };
+                            }
+                            var key = data && data.amap_web_key;
+                            if (key) { resolve(key); } else { reject(new Error('no key')); }
+                        })
+                        .catch(function (e) { clearTimeout(timeoutId); reject(e); });
+                });
+
+                return backendFetch
+                    .catch(function (err) {
+                        console.warn('Backend unreachable (' + err.message + '), using fallback AMap key');
+                        return AMAP_FALLBACK_KEY;
+                    })
+                    .then(function (key) {
+                        return loadAmapScript(key);
+                    });
+            })();
+        })();
+    </script>
+
+    <script src="outdoor-ui.js?v=20260307h"></script>
+    <script src="app.js?v=20260330ds2"></script>
+    <script src="chatbot.js?v=20260310fix2"></script>
+    <script src="components/weatherButton.js?v=20260310w4"></script>
+</body>
+</html>

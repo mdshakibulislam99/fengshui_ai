@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indoor Room Analysis - QiMatrix Feng Shui AI</title>
+    <link rel="stylesheet" href="header.css">
+    <link rel="stylesheet" href="main-styles.css">
+    <link rel="stylesheet" href="indoor-styles.css">
+    <link rel="stylesheet" href="outdoor-analysis-v2.css">
+    <link rel="stylesheet" href="chatbot.css">
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="header.js" defer></script>
+</head>
+<body>
+    <!-- Header loaded by components/header.js -->
+
+    <!-- Main Container -->
+    <div class="indoor-container">
+        <!-- Upload Mode -->
+        <div id="uploadMode" class="analysis-mode active">
+            <div class="upload-header">
+                <button class="back-btn" onclick="window.location.href='indoor-analysis.html'">← Back to Selection</button>
+                <h2>📸 Upload Room Photos</h2>
+                <button class="guide-btn" type="button" onclick="openUploadGuideModal()">Guide</button>
+            </div>
+
+            <div class="upload-workspace">
+                <div class="photo-upload-grid">
+                    <div class="photo-upload-card">
+                        <div class="upload-icon">🧭</div>
+                        <h4>North View</h4>
+                        <input type="file" id="photoNorth" accept="image/*" onchange="previewPhoto('north', this)">
+                        <label for="photoNorth" class="upload-label">
+                            <span id="labelNorth">Click to Upload</span>
+                        </label>
+                        <div id="previewNorth" class="photo-preview"></div>
+                    </div>
+
+                    <div class="photo-upload-card">
+                        <div class="upload-icon">🧭</div>
+                        <h4>South View</h4>
+                        <input type="file" id="photoSouth" accept="image/*" onchange="previewPhoto('south', this)">
+                        <label for="photoSouth" class="upload-label">
+                            <span id="labelSouth">Click to Upload</span>
+                        </label>
+                        <div id="previewSouth" class="photo-preview"></div>
+                    </div>
+
+                    <div class="photo-upload-card">
+                        <div class="upload-icon">🧭</div>
+                        <h4>East View</h4>
+                        <input type="file" id="photoEast" accept="image/*" onchange="previewPhoto('east', this)">
+                        <label for="photoEast" class="upload-label">
+                            <span id="labelEast">Click to Upload</span>
+                        </label>
+                        <div id="previewEast" class="photo-preview"></div>
+                    </div>
+
+                    <div class="photo-upload-card">
+                        <div class="upload-icon">🧭</div>
+                        <h4>West View</h4>
+                        <input type="file" id="photoWest" accept="image/*" onchange="previewPhoto('west', this)">
+                        <label for="photoWest" class="upload-label">
+                            <span id="labelWest">Click to Upload</span>
+                        </label>
+                        <div id="previewWest" class="photo-preview"></div>
+                    </div>
+
+                    <div class="photo-upload-card floor-card">
+                        <div class="upload-icon">📐</div>
+                        <h4>Floor Plan</h4>
+                        <input type="file" id="photoFloor" accept="image/*" onchange="previewPhoto('floor', this)">
+                        <label for="photoFloor" class="upload-label">
+                            <span id="labelFloor">Click to Upload</span>
+                        </label>
+                        <div id="previewFloor" class="photo-preview"></div>
+                    </div>
+                </div>
+
+                <div class="upload-actions">
+                    <button class="analyze-btn-upload" onclick="analyzePhotos()" id="analyzePhotosBtn" disabled>
+                        Analyze Room
+                    </button>
+                    <p class="upload-note">At least 3 photos required for analysis</p>
+                </div>
+            </div>
+
+            <!-- Results Section for Upload Mode -->
+            <div id="uploadResults" class="results-section ei-page" style="display: none; margin-top: 32px;">
+                <div class="ei-shell">
+                    <h2 class="analysis-result-heading">AI Feng Shui Analysis Result</h2>
+                    <section class="ei-two-column-layout">
+                        <!-- Left Column: Analysis Factor Cards -->
+                        <div class="ei-left-column">
+                            <div id="uploadMapInsightsPanel" class="card map-insights">
+                                <div id="uploadAnalysisCards">
+                                    <!-- Populated by JavaScript with insights-header and insights-topic-grid -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Score Breakdown & Visualizations -->
+                        <aside class="ei-right-column">
+                            <aside class="analysis-column">
+                                <div id="uploadDashboard" class="dashboard-stack">
+                                    <div id="uploadScoresBreakdown">
+                                        <!-- Populated by JavaScript with score grid -->
+                                    </div>
+                                </div>
+                            </aside>
+
+                            <div class="card ai-panel" style="margin-top: 16px;">
+                                <h3>Five Elements Distribution</h3>
+                                <div class="five-elements-chart-card">
+                                    <div class="five-elements-chart-wrap">
+                                        <canvas id="uploadElementsRadarChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card ai-panel" style="margin-top: 16px;">
+                                <h3>Element Analysis</h3>
+                                <div id="uploadElementAnalysis">
+                                    <!-- Populated by JavaScript -->
+                                </div>
+                            </div>
+
+                            <div id="uploadAiPanel" class="card ai-panel" style="margin-top: 16px;">
+                                <h3>AI Interpretation & Recommendations</h3>
+                                <div id="uploadRecommendations">
+                                    <!-- Populated by JavaScript -->
+                                </div>
+                            </div>
+                        </aside>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📜 Design History</h3>
+                <span class="modal-close" onclick="closeHistoryModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="savedDesignsList" class="saved-designs-list">
+                    <div class="loading-spinner"></div>
+                    <p>Loading your design history...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Alert Modal -->
+    <div id="customAlertModal" class="custom-modal" style="display:none;">
+        <div class="custom-modal-content alert-modal">
+            <div class="modal-icon-header">
+                <div class="modal-icon" id="alertIcon">ℹ️</div>
+            </div>
+            <h3 id="alertTitle" class="modal-title">Notification</h3>
+            <p id="alertMessage" class="modal-message"></p>
+            <div class="modal-actions">
+                <button class="modal-btn primary" onclick="closeCustomAlert()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Modal -->
+    <div id="customConfirmModal" class="custom-modal" style="display:none;">
+        <div class="custom-modal-content confirm-modal">
+            <div class="modal-icon-header">
+                <div class="modal-icon warning">⚠️</div>
+            </div>
+            <h3 id="confirmTitle" class="modal-title">Confirm Action</h3>
+            <p id="confirmMessage" class="modal-message"></p>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="closeCustomConfirm(false)">Cancel</button>
+                <button class="modal-btn primary" onclick="closeCustomConfirm(true)">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Prompt Modal -->
+    <div id="customPromptModal" class="custom-modal" style="display:none;">
+        <div class="custom-modal-content prompt-modal">
+            <div class="modal-icon-header">
+                <div class="modal-icon">✏️</div>
+            </div>
+            <h3 id="promptTitle" class="modal-title">Input Required</h3>
+            <p id="promptMessage" class="modal-message"></p>
+            <input type="text" id="promptInput" class="modal-input" placeholder="Enter value...">
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="closeCustomPrompt(null)">Cancel</button>
+                <button class="modal-btn primary" onclick="closeCustomPrompt('submit')">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <div id="uploadGuideModal" class="guide-modal" style="display:none;">
+        <div class="guide-modal-content" onclick="event.stopPropagation()">
+            <div class="guide-modal-header">
+                <div>
+                    <p class="guide-eyebrow">Quick Guide</p>
+                    <h3>Upload Photo Guide</h3>
+                </div>
+                <button type="button" class="guide-close" onclick="closeUploadGuideModal()">&times;</button>
+            </div>
+            <p class="guide-subtitle">Use all directions to give the model complete room context.</p>
+            <div class="guide-grid">
+                <div class="guide-item"><span class="guide-index">1</span><p>Take bright, clear photos with minimal blur.</p></div>
+                <div class="guide-item"><span class="guide-index">2</span><p>Capture full wall views: North, South, East, West.</p></div>
+                <div class="guide-item"><span class="guide-index">3</span><p>Include furniture, doors, windows, and layout flow.</p></div>
+                <div class="guide-item"><span class="guide-index">4</span><p>Add Floor shot for best Feng Shui scoring accuracy.</p></div>
+            </div>
+            <div class="guide-footer">
+                <button class="guide-action-btn" type="button" onclick="closeUploadGuideModal()">Got It</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- Our 3D System -->
+    <script src="threeScene.js" onerror="console.error('Failed to load threeScene.js')"></script>
+    <script src="objectLoader.js" onerror="console.error('Failed to load objectLoader.js')"></script>
+    <script src="interaction.js" onerror="console.error('Failed to load interaction.js')"></script>
+    
+    <!-- Outdoor UI Components for Results Display -->
+    <script src="outdoor-ui.js"></script>
+    
+    <!-- Main Application -->
+    <script src="indoor-analysis.js"></script>
+    <script src="chatbot.js"></script>
+</body>
+</html>
+

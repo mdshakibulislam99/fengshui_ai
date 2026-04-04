@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Feng Shui Analysis - QiMatrix</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="header.css">
+    <link rel="stylesheet" href="main-styles.css">
+    <link rel="stylesheet" href="personal-feng-shui.css">
+    <link rel="stylesheet" href="chatbot.css">
+    <script src="header.js" defer></script>
+    <script src="personal-feng-shui.js" defer></script>
+</head>
+<body class="personal-fs-page">
+    <!-- Header loaded by header.js -->
+
+    <div class="atmo-grid" aria-hidden="true"></div>
+    <div class="atmo-glow glow-a" aria-hidden="true"></div>
+
+    <main class="personal-fs-container">
+        <!-- Input Form Screen -->
+        <section id="inputForm" class="fs-input-section active">
+            <div class="frame-shell">
+                <header class="fs-head">
+                    <p class="chip">Personal Analysis</p>
+                    <h1>Discover Your Personal Feng Shui</h1>
+                    <p class="fs-subtitle">Based on classical Ba Zi and Eight Mansions formulas, get personalized insights tailored to your birth profile and life goals.</p>
+                </header>
+
+                <form id="personalFsForm" class="fs-form">
+                    <!-- Section: Birth Information -->
+                    <div class="form-section">
+                        <h3 class="section-title">Birth Information</h3>
+                        <p class="section-desc">Your birth details help us calculate your Kua number and Ba Zi profile</p>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="birthYear">Birth Year <span class="required">*</span></label>
+                                <input type="number" id="birthYear" name="birthYear" min="1900" max="2025" placeholder="e.g., 1985" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="birthMonth">Birth Month <span class="required">*</span></label>
+                                <select id="birthMonth" name="birthMonth" required>
+                                    <option value="">Select month</option>
+                                    <option value="1">January</option>
+                                    <option value="2">February</option>
+                                    <option value="3">March</option>
+                                    <option value="4">April</option>
+                                    <option value="5">May</option>
+                                    <option value="6">June</option>
+                                    <option value="7">July</option>
+                                    <option value="8">August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="birthDay">Birth Day <span class="required">*</span></label>
+                                <input type="number" id="birthDay" name="birthDay" min="1" max="31" placeholder="Day" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="birthTime">Birth Time <span class="optional">(Optional, for accuracy)</span></label>
+                                <input type="time" id="birthTime" name="birthTime">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="gender">Gender <span class="required">*</span></label>
+                                <div class="radio-group">
+                                    <label class="radio-option">
+                                        <input type="radio" name="gender" value="male" required>
+                                        <span>Male</span>
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="gender" value="female" required>
+                                        <span>Female</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Life Situation -->
+                    <div class="form-section">
+                        <h3 class="section-title">Current Life Situation</h3>
+                        <p class="section-desc">Help us understand your current circumstances for better recommendations</p>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="relationshipStatus">Relationship Status</label>
+                                <select id="relationshipStatus" name="relationshipStatus">
+                                    <option value="">Select status</option>
+                                    <option value="single">Single</option>
+                                    <option value="relationship">In a Relationship</option>
+                                    <option value="married">Married</option>
+                                    <option value="family">Married with Children</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="occupation">Occupation Type</label>
+                                <select id="occupation" name="occupation">
+                                    <option value="">Select occupation</option>
+                                    <option value="business_owner">Business Owner</option>
+                                    <option value="employee">Employee</option>
+                                    <option value="freelancer">Freelancer</option>
+                                    <option value="student">Student</option>
+                                    <option value="retired">Retired</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="livingType">Living Situation</label>
+                                <select id="livingType" name="livingType">
+                                    <option value="">Select type</option>
+                                    <option value="own_house">Own House</option>
+                                    <option value="own_apartment">Own Apartment</option>
+                                    <option value="renting">Renting</option>
+                                    <option value="family_home">Living with Family</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="yearsAtLocation">Years at Current Location</label>
+                                <select id="yearsAtLocation" name="yearsAtLocation">
+                                    <option value="">Select duration</option>
+                                    <option value="less_1">Less than 1 year</option>
+                                    <option value="1_3">1-3 years</option>
+                                    <option value="3_5">3-5 years</option>
+                                    <option value="5_10">5-10 years</option>
+                                    <option value="10_plus">10+ years</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Goals & Priorities -->
+                    <div class="form-section">
+                        <h3 class="section-title">Life Goals & Priorities</h3>
+                        <p class="section-desc">Select your main focus areas (choose up to 3 for best results)</p>
+                        
+                        <div class="form-group">
+                            <div class="checkbox-group goals-grid">
+                                <label class="checkbox-option goal-card">
+                                    <input type="checkbox" name="goals" value="career">
+                                    <span class="goal-label">Career Growth</span>
+                                    <p class="goal-hint">Advancement & success</p>
+                                </label>
+                                <label class="checkbox-option goal-card">
+                                    <input type="checkbox" name="goals" value="wealth">
+                                    <span class="goal-label">Wealth & Prosperity</span>
+                                    <p class="goal-hint">Financial abundance</p>
+                                </label>
+                                <label class="checkbox-option goal-card">
+                                    <input type="checkbox" name="goals" value="relationships">
+                                    <span class="goal-label">Love & Relationships</span>
+                                    <p class="goal-hint">Romance & harmony</p>
+                                </label>
+                                <label class="checkbox-option goal-card">
+                                    <input type="checkbox" name="goals" value="health">
+                                    <span class="goal-label">Health & Wellbeing</span>
+                                    <p class="goal-hint">Physical & mental health</p>
+                                </label>
+                                <label class="checkbox-option goal-card">
+                                    <input type="checkbox" name="goals" value="recognition">
+                                    <span class="goal-label">Recognition & Fame</span>
+                                    <p class="goal-hint">Visibility & reputation</p>
+                                </label>
+                                <label class="checkbox-option goal-card">
+                                    <input type="checkbox" name="goals" value="family">
+                                    <span class="goal-label">Family Harmony</span>
+                                    <p class="goal-hint">Peace & connection</p>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Space & Direction -->
+                    <div class="form-section">
+                        <h3 class="section-title">Space & Direction</h3>
+                        <p class="section-desc">Information about your living space and orientation</p>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="spaceFocus">Primary Space Focus</label>
+                                <select id="spaceFocus" name="spaceFocus">
+                                    <option value="">Select space</option>
+                                    <option value="entire_home">Entire Home</option>
+                                    <option value="bedroom">Bedroom</option>
+                                    <option value="office">Home Office</option>
+                                    <option value="living_room">Living Room</option>
+                                    <option value="multiple">Multiple Spaces</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="preferredDirection">Home/Room Facing Direction <span class="optional">(If known)</span></label>
+                                <select id="preferredDirection" name="preferredDirection">
+                                    <option value="">Not sure</option>
+                                    <option value="N">North (N)</option>
+                                    <option value="NE">Northeast (NE)</option>
+                                    <option value="E">East (E)</option>
+                                    <option value="SE">Southeast (SE)</option>
+                                    <option value="S">South (S)</option>
+                                    <option value="SW">Southwest (SW)</option>
+                                    <option value="W">West (W)</option>
+                                    <option value="NW">Northwest (NW)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Main Concerns -->
+                    <div class="form-section">
+                        <h3 class="section-title">Current Challenges</h3>
+                        <p class="section-desc">What specific issues are you experiencing? (Select all that apply)</p>
+                        
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="concerns" value="sleep">
+                                    <span>Poor Sleep Quality</span>
+                                </label>
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="concerns" value="stress">
+                                    <span>High Stress/Anxiety</span>
+                                </label>
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="concerns" value="money">
+                                    <span>Financial Struggles</span>
+                                </label>
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="concerns" value="career_stuck">
+                                    <span>Career Stagnation</span>
+                                </label>
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="concerns" value="relationship_issues">
+                                    <span>Relationship Problems</span>
+                                </label>
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="concerns" value="health">
+                                    <span>Health Issues</span>
+                                </label>
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="concerns" value="energy">
+                                    <span>Low Energy</span>
+                                </label>
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="concerns" value="none">
+                                    <span>No Major Issues</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Budget -->
+                    <div class="form-section">
+                        <h3 class="section-title">Implementation Budget</h3>
+                        <p class="section-desc">How much are you willing to invest in Feng Shui improvements?</p>
+                        
+                        <div class="form-group">
+                            <div class="radio-group budget-options">
+                                <label class="radio-option budget-card">
+                                    <input type="radio" name="budget" value="low">
+                                    <div class="budget-amount">Under $100</div>
+                                    <span class="budget-desc">Basic changes</span>
+                                </label>
+                                <label class="radio-option budget-card">
+                                    <input type="radio" name="budget" value="moderate">
+                                    <div class="budget-amount">$100 - $500</div>
+                                    <span class="budget-desc">Moderate improvements</span>
+                                </label>
+                                <label class="radio-option budget-card">
+                                    <input type="radio" name="budget" value="high">
+                                    <div class="budget-amount">$500+</div>
+                                    <span class="budget-desc">Comprehensive solutions</span>
+                                </label>
+                                <label class="radio-option budget-card">
+                                    <input type="radio" name="budget" value="any" checked>
+                                    <div class="budget-amount">Any Budget</div>
+                                    <span class="budget-desc">Show all options</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-solid btn-analyze">
+                        <span class="btn-text">Get My Analysis</span>
+                        <span class="btn-loader"></span>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Results Display Screen -->
+        <section id="resultsDisplay" class="fs-results-section">
+            <div class="frame-shell">
+                <div class="results-header">
+                    <button id="backBtn" class="btn btn-ghost btn-back">← New Analysis</button>
+                    <div>
+                        <h2>Your Personal Feng Shui Profile</h2>
+                        <p class="results-subtitle">Personalized insights based on classical Ba Zi and Eight Mansions formulas</p>
+                    </div>
+                </div>
+
+                <!-- Overall Score with Visual Rating -->
+                <div class="score-main-card">
+                    <div class="score-left">
+                        <div class="score-gauge-container">
+                            <svg class="gauge-svg" viewBox="0 0 200 140">
+                                <path class="gauge-bg" d="M 20 120 A 80 80 0 1 1 180 120" fill="none" stroke="#e5e7eb" stroke-width="20"/>
+                                <path id="gaugeProgress" class="gauge-progress" d="M 20 120 A 80 80 0 1 1 180 120" fill="none" stroke="#10b981" stroke-width="20" stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+                            </svg>
+                            <div class="gauge-value">
+                                <span id="overallScore" class="score-number">0</span>
+                                <span class="score-label">Harmony Score</span>
+                            </div>
+                        </div>
+                        <div id="scoreRating" class="score-rating">-</div>
+                        <p id="scoreExplanation" class="score-explanation">Calculating your Feng Shui harmony...</p>
+                    </div>
+                    
+                    <div class="score-right">
+                        <h3>What This Score Means</h3>
+                        <div id="scoreBreakdown" class="score-breakdown">
+                            <div class="breakdown-item">
+                                <span class="breakdown-label">Element Alignment</span>
+                                <div class="breakdown-bar">
+                                    <div class="breakdown-fill" id="elementAlignBar" style="width: 0%"></div>
+                                </div>
+                                <span class="breakdown-value" id="elementAlignValue">0%</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span class="breakdown-label">Direction Compatibility</span>
+                                <div class="breakdown-bar">
+                                    <div class="breakdown-fill" id="directionAlignBar" style="width: 0%"></div>
+                                </div>
+                                <span class="breakdown-value" id="directionAlignValue">0%</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span class="breakdown-label">Goal Alignment</span>
+                                <div class="breakdown-bar">
+                                    <div class="breakdown-fill" id="goalAlignBar" style="width: 0%"></div>
+                                </div>
+                                <span class="breakdown-value" id="goalAlignValue">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personal Profile Cards with Icons -->
+                <div class="profile-section">
+                    <h3 class="section-heading">Your Feng Shui Identity</h3>
+                    <div class="profile-cards">
+                        <div class="profile-card">
+                            <h4>Kua Number</h4>
+                            <div class="profile-value" id="kuaNumber">-</div>
+                            <p class="profile-desc" id="kuaDesc">Your personal energy number</p>
+                            <div class="profile-group" id="kuaGroup">-</div>
+                        </div>
+                        <div class="profile-card">
+                            <h4>Primary Element</h4>
+                            <div class="profile-value element-badge" id="primaryElement">-</div>
+                            <p class="profile-desc" id="elementStrength">-</p>
+                            <div class="element-traits" id="elementTraits"></div>
+                        </div>
+                        <div class="profile-card">
+                            <h4>Life Phase</h4>
+                            <div class="profile-value" id="lifePhase">-</div>
+                            <p class="profile-desc" id="ageInfo">-</p>
+                            <div class="phase-guidance" id="phaseGuidance">-</div>
+                        </div>
+                        <div class="profile-card">
+                            <h4>Zodiac Animal</h4>
+                            <div class="profile-value" id="zodiacAnimal">-</div>
+                            <p class="profile-desc" id="zodiacDesc">Chinese zodiac sign</p>
+                        </div>
+                    </div>
+                </div>
+                    </div>
+                </div>
+
+                <!-- Directions Analysis -->
+                <div class="directions-section">
+                    <h3 class="section-heading">Your Lucky & Unlucky Directions</h3>
+                    <p class="section-intro">According to the Eight Mansions formula, here's how different directions affect your energy</p>
+                    
+                    <div class="current-direction-highlight" id="currentDirectionCard" style="display: none;">
+                        <div class="current-dir-content">
+                            <h4>Current Direction Status</h4>
+                            <p id="currentDirectionText"></p>
+                        </div>
+                    </div>
+                    
+                    <div class="directions-grid" id="directionsGrid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Recommendations -->
+                <div class="recommendations-section">
+                    <h3 class="section-heading">Personalized Action Plan</h3>
+                    <p class="section-intro">Prioritized recommendations tailored to your profile and goals</p>
+                    <div class="recommendations-tabs">
+                        <button class="rec-tab active" data-priority="all">All Recommendations</button>
+                        <button class="rec-tab" data-priority="high">High Priority</button>
+                        <button class="rec-tab" data-priority="medium">Medium Priority</button>
+                        <button class="rec-tab" data-priority="low">Quick Wins</button>
+                    </div>
+                    <div class="recommendations-list" id="recommendationsList">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Remedies -->
+                <div class="remedies-section">
+                    <h3 class="section-heading">Feng Shui Remedies & Enhancements</h3>
+                    <p class="section-intro">Practical items to improve your space energy based on your element</p>
+                    <div class="remedies-grid" id="remediesGrid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Bagua Guidance -->
+                <div class="bagua-section">
+                    <h3 class="section-heading">Bagua Life Areas Map</h3>
+                    <p class="section-intro">How to activate different areas of your home for specific life goals</p>
+                    <div class="bagua-grid" id="baguaGrid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="results-actions">
+                    <button id="printBtn" class="btn btn-outline">
+                        Print Report
+                    </button>
+                    <button id="shareBtn" class="btn btn-outline">
+                        Share Results
+                    </button>
+                    <button id="saveBtn" class="btn btn-solid">
+                        Save Profile
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="loading-overlay">
+            <div class="loading-panel">
+                <p class="loading-kicker">Personal analysis in progress</p>
+                <h3>Building your Feng Shui profile</h3>
+                <p id="loadingStage" class="loading-stage">Reading your birth profile and life priorities...</p>
+                <div class="loading-progress-meta">
+                    <span id="loadingPercent">0%</span>
+                    <span id="loadingStepLabel">Step 1 of 4</span>
+                </div>
+                <div class="loading-progress-track" aria-hidden="true">
+                    <div id="loadingProgressFill" class="loading-progress-fill"></div>
+                </div>
+                <div class="loading-steps" aria-hidden="true">
+                    <div class="loading-step is-active">Birth profile</div>
+                    <div class="loading-step">Element balance</div>
+                    <div class="loading-step">Direction review</div>
+                    <div class="loading-step">Action plan</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="error-message">
+            <p id="errorText"></p>
+            <button id="closeError" class="btn btn-ghost">Close</button>
+        </div>
+    </main>
+
+    <!-- Chatbot Widget -->
+    <div id="chatbotWidget"></div>
+    <script src="chatbot.js" defer></script>
+</body>
+</html>

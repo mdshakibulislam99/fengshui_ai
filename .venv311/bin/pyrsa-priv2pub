@@ -1,0 +1,8 @@
+#!/bin/sh
+'''exec' "/Users/mac/Library/CloudStorage/GoogleDrive-mdshakibulislam8387@gmail.com/.shortcut-targets-by-id/1O6_61XwAJMbT3ddEp6mPEWF4fiNiif-3/Qi matrix/fengshui-ai/.venv311/bin/python3.11" "$0" "$@"
+' '''
+import sys
+from rsa.util import private_to_public
+if __name__ == '__main__':
+    sys.argv[0] = sys.argv[0].removesuffix('.exe')
+    sys.exit(private_to_public())

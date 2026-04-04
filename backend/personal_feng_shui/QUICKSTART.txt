@@ -1,0 +1,253 @@
+"""
+PERSONAL FENG SHUI AI SYSTEM - QUICK START GUIDE
+=================================================
+
+This guide shows how to use the Personal Feng Shui analysis system.
+
+## System Structure
+
+personal_feng_shui/
+├── config.py           - Configuration settings
+├── knowledge_base.py   - Classical Feng Shui formulas
+├── bazi_calculator.py  - Four Pillars calculations
+├── element_engine.py   - Five Elements logic
+├── remedy_database.py  - 100+ remedies
+└── analyzer.py         - Main analysis engine
+
+## API Endpoint
+
+POST /api/personal-feng-shui/analyze
+
+## Basic Usage (Python)
+
+```python
+from personal_feng_shui import analyze_personal_feng_shui
+
+profile = {
+    'birthYear': 1990,
+    'gender': 'male',
+    'goals': ['career', 'health']
+}
+
+result = analyze_personal_feng_shui(profile)
+print(f"Overall Score: {result['overall_score']}")
+print(f"Kua Number: {result['personal_profile']['kua_number']}")
+print(f"Best Direction: {result['directions']['best_direction']}")
+```
+
+## API Usage (cURL)
+
+```bash
+curl -X POST http://localhost:3000/api/personal-feng-shui/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "profile": {
+      "birthYear": 1990,
+      "gender": "male",
+      "birthMonth": 6,
+      "goals": ["career", "wealth", "health"],
+      "preferredDirection": "N",
+      "budget": "medium"
+    }
+  }'
+```
+
+## Input Fields
+
+REQUIRED:
+- birthYear (int): 1900-2026
+- gender (string): "male" or "female"
+
+OPTIONAL:
+- birthMonth (int): 1-12 (enables Ba Zi analysis)
+- birthDay (int): 1-31
+- goals (array): ["career", "wealth", "health", "relationships", "recognition"]
+- preferredDirection (string): "N", "NE", "E", "SE", "S", "SW", "W", "NW"
+- budget (string): "low", "medium", "high"
+
+## Response Keys
+
+result = {
+    'overall_score': 73,              # 0-100 overall feng shui score
+    
+    'personal_profile': {
+        'kua_number': 1,              # 1,2,3,4,6,7,8,9
+        'kua_group': 'east',          # 'east' or 'west'
+        'primary_element': 'fire',    # wood, fire, earth, metal, water
+        'element_strength': 'moderate' # weak, moderate, strong
+    },
+    
+    'directions': {
+        'best_direction': 'SE',       # Sheng Qi - for success
+        'health_direction': 'E',      # Tian Yi - for health
+        'worst_direction': 'NW',      # Jue Ming - avoid
+        'current_score': 88           # Score for preferredDirection
+    },
+    
+    'element_balance': {
+        'beneficial_elements': ['wood', 'fire'],
+        'avoid_elements': ['metal'],
+        'enhancements': {
+            'colors': ['green', 'red'],
+            'items': ['plants', 'candles']
+        }
+    },
+    
+    'recommendations': [              # Prioritized actions
+        {
+            'priority': 'high',
+            'category': 'direction',
+            'title': '...',
+            'description': '...',
+            'implementation': '...'
+        }
+    ],
+    
+    'remedies': {
+        'element_remedies': [...],    # Specific to your element
+        'budget_friendly': [...],     # Filtered by budget
+        'priority_actions': [...]     # Top 3 high-priority items
+    }
+}
+
+## Example Integration (JavaScript)
+
+```javascript
+async function getPersonalFengShui(profile) {
+    const response = await fetch('/api/personal-feng-shui/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile })
+    });
+    
+    const { success, data } = await response.json();
+    
+    if (success) {
+        console.log(`Your Kua Number: ${data.personal_profile.kua_number}`);
+        console.log(`Best Direction: ${data.directions.best_direction}`);
+        console.log(`Recommendations: ${data.recommendations.length}`);
+        return data;
+    }
+}
+
+// Usage
+const result = await getPersonalFengShui({
+    birthYear: 1990,
+    gender: 'male',
+    goals: ['career', 'health']
+});
+```
+
+## Common Use Cases
+
+### 1. Quick Kua Check
+```python
+result = analyze_personal_feng_shui({
+    'birthYear': 1985,
+    'gender': 'female'
+})
+print(f"Kua: {result['personal_profile']['kua_number']}")
+print(f"Good directions: {result['directions']['best_direction']}")
+```
+
+### 2. Full Ba Zi Analysis
+```python
+result = analyze_personal_feng_shui({
+    'birthYear': 1985,
+    'birthMonth': 3,
+    'birthDay': 15,
+    'gender': 'female',
+    'goals': ['relationships', 'career']
+})
+bazi = result['bazi_analysis']
+print(f"Day Master: {bazi['day_master']['element']}")
+print(f"Element Strength: {bazi['day_master']['strength']}")
+```
+
+### 3. Goal-Specific Guidance
+```python
+result = analyze_personal_feng_shui({
+    'birthYear': 1990,
+    'gender': 'male',
+    'goals': ['wealth', 'recognition']
+})
+for goal, score in result['goal_analysis']['goal_scores'].items():
+    print(f"{goal}: {score}/100")
+    remedies = result['goal_analysis']['goal_specific_remedies'][goal]
+    print(f"  Remedies: {remedies}")
+```
+
+### 4. Direction Optimization
+```python
+result = analyze_personal_feng_shui({
+    'birthYear': 1990,
+    'gender': 'male',
+    'preferredDirection': 'W'  # Current desk direction
+})
+print(f"Current direction score: {result['directions']['current_score']}")
+print(f"Better alternative: {result['directions']['best_direction']}")
+```
+
+## Configuration
+
+Edit backend/personal_feng_shui/config.py:
+
+```python
+class PersonalFengShuiConfig:
+    # Enable/disable features
+    ENABLE_BAZI = True
+    ENABLE_ADVANCED_REMEDIES = True
+    
+    # Scoring weights
+    SCORE_WEIGHTS = {
+        'element_alignment': 0.35,
+        'direction_alignment': 0.30,
+        'life_goal_match': 0.20,
+        'element_balance': 0.15
+    }
+    
+    # Recommendations
+    MAX_RECOMMENDATIONS = 12
+```
+
+## Frontend Integration Tips
+
+1. **Birth Year Picker**: Date picker or dropdown (1900-current year)
+2. **Gender Selection**: Radio buttons or dropdown
+3. **Goals Multi-select**: Checkboxes for multiple life goals
+4. **Direction Selector**: Compass rose UI or dropdown
+5. **Results Display**: 
+   - Overall score with progress bar
+   - Kua number with explanation
+   - Direction compass showing good/bad
+   - Prioritized recommendation cards
+   - Remedy showcase with images
+
+## Troubleshooting
+
+**Import Error**:
+```bash
+cd backend
+python3 -c "import sys; sys.path.append('.'); from personal_feng_shui import analyze_personal_feng_shui"
+```
+
+**Missing gender**:
+- System uses "unknown" and returns general recommendations
+
+**Invalid birth year**:
+- Clamped to 1900-current year automatically
+
+**No goals provided**:
+- Uses default general recommendations
+
+## Next Steps
+
+1. Create frontend form for user input
+2. Display results with visualizations
+3. Add compass rose for direction display
+4. Implement remedy cards with images
+5. Add save/share functionality
+6. Connect to user profiles/database
+
+For detailed documentation, see README.md in the personal_feng_shui folder.
+"""

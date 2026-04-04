@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indoor Camera Analysis - QiMatrix Feng Shui AI</title>
+    <link rel="stylesheet" href="header.css">
+    <link rel="stylesheet" href="main-styles.css">
+    <link rel="stylesheet" href="indoor-styles.css">
+    <link rel="stylesheet" href="outdoor-analysis-v2.css">
+    <link rel="stylesheet" href="chatbot.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="header.js" defer></script>
+</head>
+<body class="indoor-camera-page">
+    <div class="indoor-container">
+        <div class="analysis-mode active">
+            <div class="upload-header">
+                <button class="back-btn" onclick="window.location.href='indoor-analysis.html'">← Back to Selection</button>
+                <h2>📷 Camera Room Capture Analysis</h2>
+                <button class="guide-btn" type="button" onclick="openCameraGuideModal()">Guide</button>
+            </div>
+
+            <div class="upload-workspace">
+                <div class="camera-capture-card">
+                    <div class="camera-capture-head">
+                        <h3>Guided Direction Capture</h3>
+                        <p>Use live camera and capture each direction intentionally.</p>
+                    </div>
+
+                    <div class="camera-preview-wrap">
+                        <video id="roomCameraPreview" class="room-camera-preview" autoplay muted playsinline></video>
+                    </div>
+
+                    <div class="camera-direction-guide">
+                        <p class="camera-direction-title">Current capture target: <strong id="cameraCurrentDirection">North</strong></p>
+                        <div class="camera-direction-chips">
+                            <button class="camera-direction-chip" type="button" onclick="selectCameraDirection('north')" id="dirChipNorth">North</button>
+                            <button class="camera-direction-chip" type="button" onclick="selectCameraDirection('south')" id="dirChipSouth">South</button>
+                            <button class="camera-direction-chip" type="button" onclick="selectCameraDirection('east')" id="dirChipEast">East</button>
+                            <button class="camera-direction-chip" type="button" onclick="selectCameraDirection('west')" id="dirChipWest">West</button>
+                            <button class="camera-direction-chip" type="button" onclick="selectCameraDirection('floor')" id="dirChipFloor">Floor</button>
+                        </div>
+                        <div class="camera-capture-actions">
+                            <button class="camera-btn" type="button" onclick="captureCurrentDirection()" id="captureDirectionBtn" disabled>Capture Current Direction</button>
+                            <button class="camera-btn camera-btn-secondary" type="button" onclick="retakeCurrentDirection()" id="retakeDirectionBtn" disabled>Retake Current Direction</button>
+                        </div>
+                    </div>
+
+                    <div class="camera-actions">
+                        <button class="camera-btn" type="button" onclick="startRoomCamera()" id="startCameraBtn">Start Camera</button>
+                        <button class="camera-btn camera-btn-secondary" type="button" onclick="stopRoomCamera()" id="stopCameraBtn" disabled>Stop Camera</button>
+                    </div>
+
+                    <p id="cameraStatusText" class="camera-status-text">Camera is not started.</p>
+                </div>
+
+                <div class="photo-upload-grid">
+                    <div class="photo-upload-card">
+                        <div class="upload-icon">🧭</div>
+                        <h4>North View</h4>
+                        <div id="labelNorth" class="upload-label capture-status">Not Captured</div>
+                        <div id="previewNorth" class="photo-preview"></div>
+                    </div>
+
+                    <div class="photo-upload-card">
+                        <div class="upload-icon">🧭</div>
+                        <h4>South View</h4>
+                        <div id="labelSouth" class="upload-label capture-status">Not Captured</div>
+                        <div id="previewSouth" class="photo-preview"></div>
+                    </div>
+
+                    <div class="photo-upload-card">
+                        <div class="upload-icon">🧭</div>
+                        <h4>East View</h4>
+                        <div id="labelEast" class="upload-label capture-status">Not Captured</div>
+                        <div id="previewEast" class="photo-preview"></div>
+                    </div>
+
+                    <div class="photo-upload-card">
+                        <div class="upload-icon">🧭</div>
+                        <h4>West View</h4>
+                        <div id="labelWest" class="upload-label capture-status">Not Captured</div>
+                        <div id="previewWest" class="photo-preview"></div>
+                    </div>
+
+                    <div class="photo-upload-card floor-card">
+                        <div class="upload-icon">📐</div>
+                        <h4>Floor View</h4>
+                        <div id="labelFloor" class="upload-label capture-status">Not Captured</div>
+                        <div id="previewFloor" class="photo-preview"></div>
+                    </div>
+                </div>
+
+                <div class="upload-actions">
+                    <button class="analyze-btn-upload" onclick="analyzeCameraCapture()" id="analyzeCameraBtn" disabled>
+                        Analyze Camera Capture
+                    </button>
+                    <p class="upload-note">Minimum 3 directions required. Best accuracy with all 5.</p>
+                </div>
+
+                <div id="cameraResultsSection" class="results-section ei-page" style="display: none; margin-top: 32px;">
+                    <div class="ei-shell">
+                        <h2 class="analysis-result-heading">AI Feng Shui Analysis Result</h2>
+                        <section class="ei-two-column-layout">
+                            <div class="ei-left-column">
+                                <div id="cameraMapInsightsPanel" class="card map-insights">
+                                    <div id="cameraAnalysisCards"></div>
+                                </div>
+                            </div>
+
+                            <aside class="ei-right-column">
+                                <aside class="analysis-column">
+                                    <div id="cameraDashboard" class="dashboard-stack"></div>
+                                </aside>
+
+                                <div class="card ai-panel" style="margin-top: 16px;">
+                                    <h3>Five Elements Distribution</h3>
+                                    <div class="five-elements-chart-card">
+                                        <div class="five-elements-chart-wrap">
+                                            <canvas id="cameraElementsRadarChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card ai-panel" style="margin-top: 16px;">
+                                    <h3>Element Analysis</h3>
+                                    <div id="cameraElementAnalysis"></div>
+                                </div>
+
+                                <div id="cameraAiPanel" class="card ai-panel" style="margin-top: 16px;">
+                                    <h3>AI Interpretation & Recommendations</h3>
+                                    <div id="cameraRecommendations"></div>
+                                </div>
+                            </aside>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="cameraGuideModal" class="guide-modal" style="display:none;">
+        <div class="guide-modal-content" onclick="event.stopPropagation()">
+            <div class="guide-modal-header">
+                <div>
+                    <p class="guide-eyebrow">Quick Guide</p>
+                    <h3>Camera Capture Guide</h3>
+                </div>
+                <button type="button" class="guide-close" onclick="closeCameraGuideModal()">&times;</button>
+            </div>
+            <p class="guide-subtitle">Follow directional capture steps for a stronger analysis signal.</p>
+            <div class="guide-grid">
+                <div class="guide-item"><span class="guide-index">1</span><p>Stand near center and keep phone level.</p></div>
+                <div class="guide-item"><span class="guide-index">2</span><p>Capture in order: North, South, East, West.</p></div>
+                <div class="guide-item"><span class="guide-index">3</span><p>Hold steady for each shot and avoid motion blur.</p></div>
+                <div class="guide-item"><span class="guide-index">4</span><p>Capture Floor last to complete all 5 directions.</p></div>
+            </div>
+            <div class="guide-footer">
+                <button class="guide-action-btn" type="button" onclick="closeCameraGuideModal()">Got It</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="indoor-camera.js"></script>
+    <script src="chatbot.js"></script>
+</body>
+</html>

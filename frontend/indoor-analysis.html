@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indoor Room Analysis - QiMatrix Feng Shui AI</title>
+    <link rel="stylesheet" href="header.css">
+    <link rel="stylesheet" href="main-styles.css">
+    <link rel="stylesheet" href="indoor-styles.css">
+    <link rel="stylesheet" href="chatbot.css">
+    <script src="header.js" defer></script>
+</head>
+<body class="indoor-landing">
+    <!-- Header loaded by components/header.js -->
+
+    <!-- Main Container -->
+    <div class="indoor-container">
+
+        <!-- Mode Selection Screen -->
+        <div id="modeSelection" class="mode-selection active">
+            <div class="mode-content">
+                <p class="mode-kicker">Indoor Engine</p>
+                <h1 class="mode-title">Indoor Room Feng Shui Analysis</h1>
+                <p class="mode-subtitle">Choose how you want to analyze your room</p>
+                <div class="mode-options">
+                    <div class="mode-card mode-card-design" onclick="window.location.href='indoor-design.html'">
+                        <div class="mode-visual mode-visual-design" aria-hidden="true">
+                            <div class="mode-visual-badge mode-visual-badge-design">
+                                <svg class="mode-icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 3L20 7.5V16.5L12 21L4 16.5V7.5L12 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                                    <path d="M4 7.5L12 12M20 7.5L12 12M12 21V12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                </svg>
+                            </div>
+                            <div class="mode-visual-chip">◌</div>
+                        </div>
+                        <h3>Design Your Room</h3>
+                        <ul class="mode-features">
+                            <li>3D room designer</li>
+                            <li>Drag &amp; drop furniture</li>
+                            <li>Real-time visualization</li>
+                            <li>Interactive placement</li>
+                        </ul>
+                        <button class="mode-btn">Start Designing</button>
+                    </div>
+                    <div class="mode-card mode-card-upload" onclick="window.location.href='indoor-upload.html'">
+                        <div class="mode-visual mode-visual-upload" aria-hidden="true">
+                            <div class="mode-visual-badge mode-visual-badge-upload">
+                                <svg class="mode-icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="4" y="7" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                                    <path d="M9 7L10 5.5H14L15 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <circle cx="12" cy="13" r="3" stroke="currentColor" stroke-width="1.8"/>
+                                </svg>
+                            </div>
+                            <div class="upload-collage">
+                                <div class="upload-shot upload-shot-main"></div>
+                                <div class="upload-shot upload-shot-focus"></div>
+                                <div class="upload-shot upload-shot-bottom"></div>
+                            </div>
+                        </div>
+                        <h3>Upload Room Photos</h3>
+                        <ul class="mode-features">
+                            <li>Multi-angle photos</li>
+                            <li>AI-powered analysis</li>
+                            <li>Quick &amp; easy insights</li>
+                            <li>Personalized tips</li>
+                        </ul>
+                        <button class="mode-btn">Upload Photos</button>
+                    </div>
+
+                    <div class="mode-card mode-card-camera" onclick="window.location.href='indoor-camera.html'">
+                        <div class="mode-visual mode-visual-camera" aria-hidden="true">
+                            <div class="mode-visual-badge mode-visual-badge-camera">
+                                <svg class="mode-icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4 8.5C4 7.4 4.9 6.5 6 6.5H11L13 4.8H18C19.1 4.8 20 5.7 20 6.8V17.2C20 18.3 19.1 19.2 18 19.2H6C4.9 19.2 4 18.3 4 17.2V8.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                                    <circle cx="12" cy="12.2" r="3.2" stroke="currentColor" stroke-width="1.8"/>
+                                </svg>
+                            </div>
+                            <div class="camera-reel camera-reel-top"></div>
+                            <div class="camera-reel camera-reel-bottom"></div>
+                        </div>
+                        <h3>Record with Camera</h3>
+                        <ul class="mode-features">
+                            <li>Live room walkthrough recording</li>
+                            <li>Auto frame extraction</li>
+                            <li>No manual photo sorting</li>
+                            <li>Fast one-take analysis</li>
+                        </ul>
+                        <button class="mode-btn">Use Camera</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Indoor Analysis Result Output Section (matches outdoor style) -->
+        <div id="indoorResults" class="results-section ei-page" style="display: none;">
+            <div class="ei-shell">
+                <section class="ei-two-column-layout">
+                    <!-- Left Column: Summary and Placeholder -->
+                    <div class="ei-left-column">
+                        <div class="card">
+                            <h2 style="margin-bottom: 16px;">Indoor Room Analysis Complete</h2>
+                            <p style="color: var(--ei-text-soft);">Your room has been analyzed. Review the results below.</p>
+                        </div>
+                    </div>
+                    <!-- Right Column: Analysis Results -->
+                    <aside class="ei-right-column">
+                        <!-- Summary Card -->
+                        <aside class="summary-column">
+                            <details class="summary-details" open>
+                                <summary>Analysis Summary</summary>
+                                <div id="indoorSummaryCard" class="card summary-card">
+                                    <h2>Your Analysis</h2>
+                                    <div id="indoorSummaryContent">
+                                        <!-- Populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </details>
+                        </aside>
+                        <!-- Analysis Dashboard -->
+                        <aside class="analysis-column">
+                            <div id="indoorDashboard" class="dashboard-stack">
+                                <div id="indoorAnalysisCards">
+                                    <!-- Populated by JavaScript with analysis cards -->
+                                </div>
+                            </div>
+                        </aside>
+                        <!-- AI Interpretation Panel -->
+                        <div id="indoorAiPanelMount" class="card ai-panel">
+                            <h3>AI Interpretation & Recommendations</h3>
+                            <div id="indoorRecommendations">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                    </aside>
+                </section>
+            </div>
+        </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📜 Design History</h3>
+                <span class="modal-close" onclick="closeHistoryModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="savedDesignsList" class="saved-designs-list">
+                    <div class="loading-spinner"></div>
+                    <p>Loading your design history...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Alert Modal -->
+    <div id="customAlertModal" class="custom-modal" style="display:none;">
+        <div class="custom-modal-content alert-modal">
+            <div class="modal-icon-header">
+                <div class="modal-icon" id="alertIcon">ℹ️</div>
+            </div>
+            <h3 id="alertTitle" class="modal-title">Notification</h3>
+            <p id="alertMessage" class="modal-message"></p>
+            <div class="modal-actions">
+                <button class="modal-btn primary" onclick="closeCustomAlert()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Modal -->
+    <div id="customConfirmModal" class="custom-modal" style="display:none;">
+        <div class="custom-modal-content confirm-modal">
+            <div class="modal-icon-header">
+                <div class="modal-icon warning">⚠️</div>
+            </div>
+            <h3 id="confirmTitle" class="modal-title">Confirm Action</h3>
+            <p id="confirmMessage" class="modal-message"></p>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="closeCustomConfirm(false)">Cancel</button>
+                <button class="modal-btn primary" onclick="closeCustomConfirm(true)">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Prompt Modal -->
+    <div id="customPromptModal" class="custom-modal" style="display:none;">
+        <div class="custom-modal-content prompt-modal">
+            <div class="modal-icon-header">
+                <div class="modal-icon">✏️</div>
+            </div>
+            <h3 id="promptTitle" class="modal-title">Input Required</h3>
+            <p id="promptMessage" class="modal-message"></p>
+            <input type="text" id="promptInput" class="modal-input" placeholder="Enter value...">
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="closeCustomPrompt(null)">Cancel</button>
+                <button class="modal-btn primary" onclick="closeCustomPrompt('submit')">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- Our 3D System -->
+    <script src="threeScene.js" onerror="console.error('Failed to load threeScene.js')"></script>
+    <script src="objectLoader.js" onerror="console.error('Failed to load objectLoader.js')"></script>
+    <script src="interaction.js" onerror="console.error('Failed to load interaction.js')"></script>
+    
+    <!-- Main Application -->
+    <script src="indoor-analysis.js"></script>
+    <script src="chatbot.js"></script>
+</body>
+</html>

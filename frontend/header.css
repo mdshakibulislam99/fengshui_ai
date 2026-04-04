@@ -1,0 +1,195 @@
+/* ============================================================
+   Universal Header — QiMatrix
+   Matches the homepage green / light design exactly.
+   ============================================================ */
+
+.top-frame {
+    position: sticky;
+    top: 0;
+    z-index: 900;
+    background: rgba(244, 248, 243, 0.92);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(202, 223, 211, 0.95);
+}
+
+.frame-shell {
+    width: min(1280px, 100% - 48px);
+    margin: 0 auto;
+}
+
+.nav-row {
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+/* Brand */
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    text-decoration: none;
+    color: #101f18;
+    flex-shrink: 0;
+}
+.brand:hover { opacity: 0.8; }
+
+.brand-glyph {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    transform: rotate(45deg);
+    background: linear-gradient(140deg, #ef6f37, #10b981);
+    box-shadow: 0 0 0 7px rgba(15, 138, 96, 0.12);
+    flex-shrink: 0;
+}
+
+.brand-text {
+    font-family: "Poppins", "Segoe UI", sans-serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #101f18;
+}
+
+/* Desktop nav */
+.hdr-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex: 1;
+    justify-content: center;
+}
+
+.hdr-nav a {
+    color: #3f584f;
+    font-size: 0.93rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    padding: 0.38rem 0.7rem;
+    border-radius: 999px;
+    text-decoration: none;
+    transition: color 0.2s ease, background 0.2s ease;
+    white-space: nowrap;
+}
+.hdr-nav a:hover  { color: #101f18; background: rgba(255,255,255,0.82); }
+.hdr-nav a.hdr-active { color: #10b981; background: rgba(16,185,129,0.08); }
+
+/* CTA buttons */
+.nav-ctas {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-shrink: 0;
+}
+
+.hdr-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-family: "Poppins", "Segoe UI", sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+    border: none;
+}
+.hdr-btn:hover { transform: translateY(-2px); }
+
+.hdr-btn-ghost {
+    border: 1px solid #cadfd3;
+    background: rgba(255,255,255,0.88);
+    color: #3f584f;
+    padding: 0.55rem 1rem;
+}
+.hdr-btn-ghost:hover { background: #fff; color: #101f18; }
+
+.hdr-btn-solid {
+    background: #10b981;
+    color: #fff;
+    padding: 0.6rem 1.1rem;
+}
+.hdr-btn-solid:hover { background: #10b981; box-shadow: 0 6px 18px rgba(16,185,129,0.28); }
+
+/* Mobile toggle */
+.hdr-toggle {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    flex-shrink: 0;
+}
+.hdr-toggle span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: #101f18;
+    border-radius: 2px;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.hdr-toggle.open span:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+.hdr-toggle.open span:nth-child(2) { opacity: 0; }
+.hdr-toggle.open span:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+
+/* Mobile nav panel */
+.hdr-mobile-nav {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: rgba(244,248,243,0.98);
+    border-bottom: 1px solid #cadfd3;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, padding 0.3s ease;
+    padding: 0 1.5rem;
+}
+.hdr-mobile-nav.open {
+    max-height: 80vh;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+.hdr-mobile-nav a {
+    color: #3f584f;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(202,223,211,0.5);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+.hdr-mobile-nav a:last-of-type { border-bottom: none; }
+.hdr-mobile-nav a:hover { color: #10b981; }
+
+.hdr-mobile-ctas {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #cadfd3;
+}
+.hdr-mobile-ctas .hdr-btn {
+    width: 100%;
+    justify-content: center;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .hdr-nav, .nav-ctas { display: none; }
+    .hdr-toggle, .hdr-mobile-nav { display: flex; }
+}
+@media (max-width: 480px) {
+    .nav-row { min-height: 60px; }
+    .brand-text { font-size: 1.15rem; }
+}
