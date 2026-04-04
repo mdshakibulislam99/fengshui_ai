@@ -9,7 +9,7 @@ let currentPolygon = null;
 let polygonEditor = null;
 let defaultMarkerIcon = null;
 let polygonVertexMarkers = [];
-let apiBaseUrl = 'http://localhost:3000';
+let apiBaseUrl = 'https://fengshui-ai.onrender.com';
 let selectionMode = 'location';
 let latestReportPayload = null;
 const geocodeCache = new Map();
@@ -111,7 +111,7 @@ async function initializeApp() {
 
 async function loadConfiguration() {
     try {
-        const response = await fetch('http://localhost:3000/api/config');
+        const response = await fetch('https://fengshui-ai.onrender.com/api/config');
         if (!response.ok) {
             throw new Error('Failed to load configuration');
         }
@@ -124,7 +124,7 @@ async function loadConfiguration() {
         console.warn('Using default configuration:', error);
         // Fallback configuration
         return {
-            api_base_url: 'http://localhost:3000',
+            api_base_url: 'https://fengshui-ai.onrender.com',
             map_default_center: [116.397428, 39.90923],
             map_default_zoom: 13
         };

@@ -6,7 +6,7 @@
 class DeepSeekConfigManager {
     constructor() {
         this.isConfigured = false;
-        const baseUrl = window.apiBaseUrl || 'http://localhost:3000';
+        const baseUrl = window.apiBaseUrl || 'https://fengshui-ai.onrender.com';
         this.apiUrl = `${baseUrl}/api`;
         this.init();
     }

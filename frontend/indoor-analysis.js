@@ -356,7 +356,7 @@ async function analyzeDesign() {
     showIndoorLoading();
     
     try {
-        const response = await fetch('http://localhost:3000/api/indoor-analyze', {
+        const response = await fetch('https://fengshui-ai.onrender.com/api/indoor-analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestData)
@@ -2408,7 +2408,7 @@ async function analyzePhotos() {
         const source = hasGuidedCameraCaptures
             ? 'camera_guided'
             : (roomRecordedBlob ? 'camera_video' : 'photo_upload');
-        const response = await fetch('http://localhost:3000/api/indoor-photo-analyze', {
+        const response = await fetch('https://fengshui-ai.onrender.com/api/indoor-photo-analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

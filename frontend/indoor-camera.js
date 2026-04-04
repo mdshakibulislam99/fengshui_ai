@@ -645,7 +645,7 @@ async function analyzeCameraCapture() {
     }
 
     try {
-        const response = await fetch('http://localhost:3000/api/indoor-photo-analyze', {
+        const response = await fetch('https://fengshui-ai.onrender.com/api/indoor-photo-analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

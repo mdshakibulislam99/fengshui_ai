@@ -6,7 +6,7 @@
 (function() {
     'use strict';
 
-    const API_BASE_URL = 'http://localhost:3000/api';
+    const API_BASE_URL = 'https://fengshui-ai.onrender.com/api';
     const loadingStages = [
         'Reading your birth profile and life priorities...',
         'Balancing your five-element pattern and personal timing...',
