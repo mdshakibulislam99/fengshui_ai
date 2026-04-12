@@ -4,6 +4,7 @@ import logging
 from typing import Dict, List, Optional, Tuple
 import math
 from datetime import datetime
+import time
 
 from config import config
 from ai_model import predict_feng_shui_score
@@ -531,6 +532,7 @@ def calculate_feng_shui_score(features: Dict, location_context: Optional[Dict] =
         }
     """
     logger.info("Calculating comprehensive Feng Shui score...")
+    score_start_ts = time.monotonic()
     
     # Calculate individual category scores (0-100 scale)
     category_scores = {
@@ -641,6 +643,25 @@ def calculate_feng_shui_score(features: Dict, location_context: Optional[Dict] =
     # Combine traditional and AI scores (70% traditional, 30% AI)
     if ai_result:
         ai_score = ai_result['ai_score']
+        
+        # CAMPUS LOCATION DETECTION AND CORRECTION
+        # AI model trained on urban commercial features; doesn't recognize campuses
+        # Detect campuses by characteristic feature pattern and boost their AI scores
+        # Campus profile: good green space, clean environment, low water, moderate/low buildings
+        is_campus = (
+            features.get('green_area_ratio', 0) > 0.45 and      # Good green space
+            features.get('environmental_quality', 0) > 0.70 and # Clean/well-maintained
+            features.get('water_proximity', 0) < 0.25 and       # No nearby water (inland campus)
+            features.get('building_density', 0) < 0.80          # Not overly dense
+        )
+        
+        if is_campus and ai_score < 70:
+            # Campus detected with low AI score (model doesn't understand campus features)
+            # Boost towards traditional score for better balanced final score
+            campus_boost = (traditional_score - ai_score) * 0.5  # Boost by 50% of gap
+            ai_score = min(ai_score + campus_boost, traditional_score - 5)  # Don't exceed traditional -5
+            logger.info(f"Campus location detected: boosted AI score +{campus_boost:.1f} ({ai_score:.2f})")
+        
         signal_strength = _data_signal_strength(features)
         # Keep AI as an assistant model; reduce its influence when direct map
         # signals are sparse (common in heritage villages and rural terrain).
@@ -670,108 +691,79 @@ def calculate_feng_shui_score(features: Dict, location_context: Optional[Dict] =
     deepseek_reason = None
     deepseek_model = None
     deepseek_category_scores: Dict[str, float] = {}
-    reputation_info = _infer_reputation_tier(location_context)
 
-    # Ask DeepSeek for an independent score and align toward it.
-    try:
-        from chatbot_service import get_chatbot
+    # Ask DeepSeek for an independent score only when low-latency budget allows it.
+    deepseek_alignment_enabled = bool(getattr(config, 'DEEPSEEK_ALIGNMENT_ENABLED', False))
+    scoring_budget_sec = max(0.8, float(getattr(config, 'SCORING_MAX_LATENCY_SEC', 8.0)))
+    elapsed_before_alignment = time.monotonic() - score_start_ts
+    remaining_budget = scoring_budget_sec - elapsed_before_alignment
 
-        score_context = {
-            'features': {k: round(float(v), 4) for k, v in features.items() if isinstance(v, (int, float))},
-            'category_scores': {k: round(float(v), 2) for k, v in category_scores.items()},
-            'local_model_score': round(local_model_score, 2),
-            'traditional_score': round(traditional_score, 2),
-            'ai_score': round(ai_score, 2) if ai_score is not None else None,
-            'yin_yang_balance': round(yin_yang_balance, 2),
-            'five_elements_harmony': round(five_elements.get('overall_score', 0.0), 2),
-            'qi_flow_score': round(qi_flow_score, 2),
-            'location_context': {
-                'address': (location_context or {}).get('address', ''),
-                'latitude': (location_context or {}).get('latitude'),
-                'longitude': (location_context or {}).get('longitude'),
-                'radius': (location_context or {}).get('radius'),
-                'reputation_tier': reputation_info.get('tier'),
-                'matched_keyword': reputation_info.get('matched_keyword'),
-            },
-            'policy': {
-                'target_similarity_pct': 99,
-                'reputation_floor_score': 98 if reputation_info.get('tier') == 'legendary' else None,
+    if deepseek_alignment_enabled and remaining_budget > 0.9:
+        try:
+            from chatbot_service import get_chatbot
+
+            configured_timeout = max(0.8, float(getattr(config, 'DEEPSEEK_SCORE_TIMEOUT_SEC', 2.2)))
+            deepseek_timeout = min(configured_timeout, max(0.8, remaining_budget - 0.2))
+
+            score_context = {
+                'features': {k: round(float(v), 4) for k, v in features.items() if isinstance(v, (int, float))},
+                'category_scores': {k: round(float(v), 2) for k, v in category_scores.items()},
+                'local_model_score': round(local_model_score, 2),
+                'traditional_score': round(traditional_score, 2),
+                'ai_score': round(ai_score, 2) if ai_score is not None else None,
+                'yin_yang_balance': round(yin_yang_balance, 2),
+                'five_elements_harmony': round(five_elements.get('overall_score', 0.0), 2),
+                'qi_flow_score': round(qi_flow_score, 2),
+                'location_context': {
+                    'address': (location_context or {}).get('address', ''),
+                    'latitude': (location_context or {}).get('latitude'),
+                    'longitude': (location_context or {}).get('longitude'),
+                    'radius': (location_context or {}).get('radius'),
+                },
             }
-        }
 
-        deepseek_result = get_chatbot().get_deepseek_score(score_context)
-        if deepseek_result.get('success'):
-            parsed_deepseek = deepseek_result.get('overall_score')
-            if isinstance(parsed_deepseek, (int, float)):
-                deepseek_score = max(0.0, min(100.0, float(parsed_deepseek)))
-                deepseek_model = deepseek_result.get('model')
-                deepseek_confidence = deepseek_result.get('confidence')
-                deepseek_reason = deepseek_result.get('reason')
+            deepseek_result = get_chatbot().get_deepseek_score(score_context, timeout_sec=deepseek_timeout)
+            if deepseek_result.get('success'):
+                parsed_deepseek = deepseek_result.get('overall_score')
+                if isinstance(parsed_deepseek, (int, float)):
+                    deepseek_score = max(0.0, min(100.0, float(parsed_deepseek)))
+                    deepseek_model = deepseek_result.get('model')
+                    deepseek_confidence = deepseek_result.get('confidence')
+                    deepseek_reason = deepseek_result.get('reason')
 
-                # INTELLIGENT SCORE SELECTION: Use higher score (DeepSeek reasoning vs local model)
-                score_difference = deepseek_score - local_model_score
-                
-                if score_difference > 5:
-                    # DeepSeek significantly higher: strongly favor DeepSeek (90% weight)
-                    deepseek_alignment_factor = 0.90
+                    # BALANCED SCORE BLEND: Fixed 65% local / 35% DeepSeek regardless of direction.
+                    deepseek_alignment_factor = 0.35
                     final_score = local_model_score * (1.0 - deepseek_alignment_factor) + deepseek_score * deepseek_alignment_factor
+                    score_difference = deepseek_score - local_model_score
                     logger.info(
-                        f"✓ DeepSeek detects higher potential (+{score_difference:.1f}): "
-                        f"Local={local_model_score:.1f} → DeepSeek={deepseek_score:.1f} "
-                        f"(90% weight to DeepSeek reasoning)"
-                    )
-                elif score_difference > 0:
-                    # DeepSeek moderately higher: favor DeepSeek (75% weight)
-                    deepseek_alignment_factor = 0.75
-                    final_score = local_model_score * (1.0 - deepseek_alignment_factor) + deepseek_score * deepseek_alignment_factor
-                    logger.info(
-                        f"✓ DeepSeek detects better aspects (+{score_difference:.1f}): "
-                        f"Local={local_model_score:.1f} → DeepSeek={deepseek_score:.1f} "
-                        f"(75% weight to DeepSeek)"
-                    )
-                elif score_difference > -5:
-                    # DeepSeek slightly lower: balanced blend (50-50)
-                    deepseek_alignment_factor = 0.50
-                    final_score = local_model_score * (1.0 - deepseek_alignment_factor) + deepseek_score * deepseek_alignment_factor
-                    logger.info(
-                        f"✓ DeepSeek verification (-{abs(score_difference):.1f}): "
+                        f"✓ DeepSeek blend (35% weight): "
                         f"Local={local_model_score:.1f}, DeepSeek={deepseek_score:.1f} "
-                        f"(balanced 50-50 blend)"
+                        f"(diff={score_difference:+.1f}) → Final={final_score:.1f}"
                     )
-                else:
-                    # DeepSeek significantly lower: trust local model (80% weight)
-                    deepseek_alignment_factor = 0.20
-                    final_score = local_model_score * (1.0 - deepseek_alignment_factor) + deepseek_score * deepseek_alignment_factor
-                    logger.info(
-                        f"⚠ DeepSeek lower estimate (-{abs(score_difference):.1f}): "
-                        f"Local={local_model_score:.1f}, DeepSeek={deepseek_score:.1f} "
-                        f"(trusting local model with 80% weight)"
-                    )
-                
-                deepseek_similarity_pct = max(0.0, 100.0 - abs(final_score - deepseek_score))
-                deepseek_alignment_applied = True
 
-                raw_deepseek_categories = deepseek_result.get('category_scores') or {}
-                if isinstance(raw_deepseek_categories, dict):
-                    for key, value in raw_deepseek_categories.items():
-                        if not isinstance(value, (int, float)):
-                            continue
-                        bounded = max(0.0, min(100.0, float(value)))
-                        deepseek_category_scores[key] = bounded
-                        if key in category_scores:
-                            category_scores[key] = category_scores[key] * (1.0 - deepseek_alignment_factor) + bounded * deepseek_alignment_factor
+                    deepseek_similarity_pct = max(0.0, 100.0 - abs(final_score - deepseek_score))
+                    deepseek_alignment_applied = True
 
-                    # Keep derived fields internally consistent when categories are aligned.
-                    if 'yin_yang_balance' in category_scores:
-                        yin_yang_balance = category_scores['yin_yang_balance']
-                    if 'five_elements_harmony' in category_scores:
-                        five_elements['overall_score'] = category_scores['five_elements_harmony']
-                    if 'qi_flow' in category_scores:
-                        qi_flow_score = category_scores['qi_flow']
-        else:
-            logger.warning(f"DeepSeek score unavailable: {deepseek_result.get('error', 'unknown')}")
-    except Exception as deepseek_err:
-        logger.warning(f"DeepSeek score alignment skipped: {deepseek_err}")
+                    raw_deepseek_categories = deepseek_result.get('category_scores') or {}
+                    if isinstance(raw_deepseek_categories, dict):
+                        for key, value in raw_deepseek_categories.items():
+                            if not isinstance(value, (int, float)):
+                                continue
+                            bounded = max(0.0, min(100.0, float(value)))
+                            deepseek_category_scores[key] = bounded
+                            if key in category_scores:
+                                category_scores[key] = category_scores[key] * (1.0 - deepseek_alignment_factor) + bounded * deepseek_alignment_factor
+            else:
+                logger.warning(f"DeepSeek score unavailable: {deepseek_result.get('error', 'unknown')}")
+        except Exception as deepseek_err:
+            logger.warning(f"DeepSeek score alignment skipped: {deepseek_err}")
+    elif not deepseek_alignment_enabled:
+        logger.info("DeepSeek alignment disabled for low-latency scoring")
+    else:
+        logger.info(
+            f"Skipping DeepSeek alignment to protect latency budget "
+            f"({elapsed_before_alignment:.2f}s used of {scoring_budget_sec:.2f}s)"
+        )
     
     # Generate explanations
     explanations = generate_explanations(features, category_scores, final_score)
@@ -789,8 +781,17 @@ def calculate_feng_shui_score(features: Dict, location_context: Optional[Dict] =
         'yin_yang_balance': round(yin_yang_balance, 2),
         'five_elements': {k: round(v, 2) for k, v in five_elements.items()},
         'qi_flow_score': round(qi_flow_score, 2),
+        'deepseek_score': round(deepseek_score, 2) if isinstance(deepseek_score, (int, float)) else None,
+        'deepseek_alignment_applied': deepseek_alignment_applied,
+        'deepseek_confidence': round(deepseek_confidence, 2) if isinstance(deepseek_confidence, (int, float)) else None,
+        'deepseek_similarity_pct': round(deepseek_similarity_pct, 2) if isinstance(deepseek_similarity_pct, (int, float)) else None,
+        'deepseek_model': deepseek_model,
         'explanations': explanations,
         'suggestions': suggestions
+    }
+
+    result['timings'] = {
+        'scoring_ms': round((time.monotonic() - score_start_ts) * 1000),
     }
     
     logger.info(f"Final Feng Shui score: {result['final_score']:.2f} (Traditional: {traditional_score:.2f}, AI: {ai_score})")
@@ -959,22 +960,55 @@ def calculate_environment_score(features: Dict) -> float:
 
 
 def calculate_spiritual_score(features: Dict) -> float:
-    """Calculate spiritual energy score (0-100)."""
-    presence = _clamp01(features.get('spiritual_presence', 0.0))
-    topography = _clamp01(features.get('topography_score', 0.5))
+    """
+    Calculate spiritual energy score (0-100).
+    
+    Spiritual energy comes from two sources:
+    1. Intrinsic spiritual quality: QI flow, orientation, environmental harmony
+    2. Sanctified spaces: Temples and religious sites (bonus, not primary)
+    
+    KEY CHANGE: Don't penalize locations for lacking temples. Instead, calculate
+    the natural spiritual energy of the place based on its environmental quality,
+    then boost if temples are present.
+    """
+    # Temple presence as a bonus
+    temple_presence = _clamp01(features.get('spiritual_presence', 0.0))
+    
+    # Intrinsic spiritual quality factors
     qi_flow = _clamp01(features.get('qi_flow', 0.5))
     orientation = _clamp01(features.get('orientation_score', 0.5))
-    rural_factor = _rural_context_factor(features)
-
-    base = presence * 100.0
-    cultural_proxy = (topography * 0.40 + qi_flow * 0.35 + orientation * 0.25) * 100.0
-    blend = rural_factor * 0.60
-    score = base * (1.0 - blend) + max(base, cultural_proxy) * blend
-
-    if rural_factor > 0.5 and base == 0:
-        score = max(score, 55.0)
-
-    return max(0.0, min(score, 100.0))
+    topography = _clamp01(features.get('topography_score', 0.5))
+    environmental = _clamp01(features.get('environmental_quality', 0.5))
+    green = _clamp01(features.get('green_area_ratio', 0.5))
+    
+    # Base spiritual quality from environmental harmony
+    # High QI flow + good orientation + green space = naturally spiritual
+    spiritual_quality = (qi_flow * 0.35 + 
+                        orientation * 0.35 + 
+                        environmental * 0.20 + 
+                        green * 0.10)  # % for natural harmony
+    
+    # Convert quality to score (0-100)
+    if spiritual_quality > 0.80:
+        base_score = 75 + (spiritual_quality - 0.70) * 20  # 75-100 range
+    elif spiritual_quality > 0.70:
+        base_score = 70 + (spiritual_quality - 0.65) * 10  # 70-75 range
+    elif spiritual_quality > 0.60:
+        base_score = 60 + (spiritual_quality - 0.55) * 10  # 60-70 range
+    else:
+        base_score = 50 + spiritual_quality * 20           # 50-60 range for below average
+    
+    # Temple presence adds to spiritual energy (not replaces)
+    temple_bonus = 0.0
+    if temple_presence > 0.0:
+        # Having temples nearby boosts spiritual score
+        # 1 temple (presence=0.5) adds +10 points
+        # 2+ temples (presence=1.0) adds +15 points
+        temple_bonus = temple_presence * 15
+    
+    final_score = base_score + temple_bonus
+    
+    return max(0.0, min(final_score, 100.0))
 
 
 def generate_explanations(features: Dict, 

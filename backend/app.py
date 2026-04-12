@@ -66,6 +66,8 @@ from wind import ERA5WindService
 from wind.config import WindConfig
 from flood import GEEFloodService
 from flood.config import FloodConfig
+from ndvi import NDVIService
+from ndvi.config import NDVIConfig
 from indoor_analyzer import analyze_room_design, analyze_room_photos
 from personal_feng_shui import analyze_personal_feng_shui
 from chatbot_service import get_chatbot
@@ -138,6 +140,13 @@ def _log_request(response):
         'ip': request.remote_addr,
     }))
     response.headers['X-Response-Time-Ms'] = str(duration_ms)
+    
+    # Prevent caching of API analysis results - ensure UI always gets fresh scores
+    if request.path.startswith('/api/'):
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    
     return response
 
 # Initialize DEM Service for terrain analysis
@@ -200,6 +209,19 @@ if FloodConfig.FLOOD_ENABLE:
         logger.warning(f"⚠ Flood service initialization failed: {e}")
         logger.warning("  Proceeding without Flood data - flood risk analysis unavailable")
         flood_service = None
+
+# Initialize NDVI service for satellite vegetation analysis
+ndvi_service = None
+if NDVIConfig.NDVI_ENABLE:
+    try:
+        ndvi_service = NDVIService(
+            service_account_path=NDVIConfig.GEE_SERVICE_ACCOUNT_PATH,
+            nasa_api_key=NDVIConfig.NASA_API_KEY
+        )
+        logger.info("✓ NDVI service initialized (Sentinel-2 + MODIS free fallback)")
+    except Exception as e:
+        logger.warning(f"⚠ NDVI service initialization failed: {e}")
+        ndvi_service = None
 
 
 # ==================== UTILITY FUNCTIONS ====================
@@ -411,12 +433,15 @@ def _run_analysis(latitude, longitude, radius, location_context=None):
     state — safe to fetch in parallel, saving ~0.5-1s per request.
     """
     from concurrent.futures import ThreadPoolExecutor
+    pipeline_start = time.monotonic()
     with ThreadPoolExecutor(max_workers=2) as pool:
         f_poi  = pool.submit(search_nearby_pois, longitude, latitude, radius)
         f_road = pool.submit(get_road_network_data, longitude, latitude, radius)
         poi_data  = f_poi.result()
         road_data = f_road.result()
+    data_fetch_ms = round((time.monotonic() - pipeline_start) * 1000)
 
+    features_start = time.monotonic()
     features = extract_features(
         poi_data,
         road_data,
@@ -428,8 +453,23 @@ def _run_analysis(latitude, longitude, radius, location_context=None):
         buildings_service=buildings_service,
         wind_service=wind_service,
         flood_service=flood_service,
+        ndvi_service=ndvi_service,
     )
-    return calculate_feng_shui_score(features, location_context=location_context)
+    feature_extract_ms = round((time.monotonic() - features_start) * 1000)
+
+    score_start = time.monotonic()
+    score_result = calculate_feng_shui_score(features, location_context=location_context)
+    scoring_ms = round((time.monotonic() - score_start) * 1000)
+
+    logger.info(json.dumps({
+        'event': 'analysis_timing',
+        'data_fetch_ms': data_fetch_ms,
+        'feature_extract_ms': feature_extract_ms,
+        'scoring_ms': scoring_ms,
+        'total_pipeline_ms': round((time.monotonic() - pipeline_start) * 1000),
+    }))
+
+    return score_result
 
 
 @app.route('/api/analyze', methods=['POST'])
@@ -479,16 +519,22 @@ def analyze_location():
         if radius <= 0 or radius > 5000:
             return error_response("Radius must be between 1 and 5000 meters", 400)
 
+        # Check if user requested fresh analysis (bypass cache)
+        refresh_cache = data.get('refresh_cache', False)
+        
         # --- Cache check ---
         ckey = _cache_key(latitude, longitude, radius, location_label)
-        with _analyze_cache_lock:
-            cached = _analyze_cache.get(ckey)
-        if cached is not None:
-            logger.info(f"Cache hit: lat={latitude}, lng={longitude}, radius={radius}m")
-            cached['_cached'] = True
-            if location_label:
-                cached.setdefault('location', {})['address'] = location_label
-            return success_response(cached)
+        if not refresh_cache:
+            with _analyze_cache_lock:
+                cached = _analyze_cache.get(ckey)
+            if cached is not None:
+                logger.info(f"Cache hit: lat={latitude}, lng={longitude}, radius={radius}m")
+                cached['_cached'] = True
+                if location_label:
+                    cached.setdefault('location', {})['address'] = location_label
+                return success_response(cached)
+        else:
+            logger.info(f"Cache refresh requested: lat={latitude}, lng={longitude}, radius={radius}m")
 
         try:
             logger.info(f"Analyzing location: lat={latitude}, lng={longitude}, radius={radius}m")
@@ -667,7 +713,8 @@ def polygon_analysis():
                 hydrosheds_service=hydrosheds_service,
                 buildings_service=buildings_service,
                 wind_service=wind_service,
-                flood_service=flood_service
+                flood_service=flood_service,
+                ndvi_service=ndvi_service
             )
             
             # Calculate score

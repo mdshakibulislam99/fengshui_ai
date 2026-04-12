@@ -10,7 +10,17 @@ load_dotenv()
 
 class NDVIConfig:
     """Configuration for NDVI and NASA satellite data services"""
-    
+
+    # Set to False to disable satellite vegetation scoring (NDVI) entirely.
+    NDVI_ENABLE = os.getenv('NDVI_ENABLE', 'true').lower() != 'false'
+
+    # GEE service account path — reuse the DEM service account (same GEE project).
+    # Override with env var GEE_SERVICE_ACCOUNT_PATH if needed.
+    GEE_SERVICE_ACCOUNT_PATH = os.getenv(
+        'GEE_SERVICE_ACCOUNT_PATH',
+        os.path.join(os.path.dirname(__file__), '..', 'dem', 'service_account.json')
+    )
+
     # NDVI (Normalized Difference Vegetation Index) Configuration
     NDVI_SATELLITE = 'SENTINEL2'  # Use Sentinel-2 for NDVI (higher resolution)
     NDVI_YEAR = 2024  # Year for NDVI data (uses most recent if available)
@@ -36,7 +46,7 @@ class NDVIConfig:
     
     # NASA Data API Configuration (Optional - for real-time NASA data)
     # Get your API key at: https://api.nasa.gov/
-    NASA_API_KEY = os.getenv('NASA_API_KEY', 'j8IV7fGQaqoo8wGdLLqeQE7mwlak1jXbmADRZ7Ta')
+    NASA_API_KEY = os.getenv('NASA_API_KEY', '')
     NASA_API_URL = 'https://api.nasa.gov'
     
     # NASA Data Sources

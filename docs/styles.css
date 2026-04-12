@@ -100,13 +100,13 @@ header p {
 
 .search-input-row input:focus {
     outline: none;
-    border-color: #00A99D;
-    box-shadow: 0 0 0 3px rgba(0, 169, 157, 0.1);
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
 .search-input-row button {
     padding: 8px 16px;
-    background: #00A99D;
+    background: #dc2626;
     color: white;
     border: none;
     border-radius: 6px;
@@ -118,9 +118,9 @@ header p {
 }
 
 .search-input-row button:hover {
-    background: #008F85;
+    background: #b91c1c;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 169, 157, 0.3);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
 
 .radius-control {
@@ -137,7 +137,7 @@ header p {
 }
 
 .radius-control label span {
-    color: #00A99D;
+    color: #dc2626;
     font-weight: 700;
 }
 
@@ -145,7 +145,7 @@ header p {
     width: 100%;
     height: 8px;
     border-radius: 4px;
-    background: linear-gradient(to right, #00A99D 0%, #00A99D 10%, #E2E8F0 10%, #E2E8F0 100%);
+    background: linear-gradient(to right, #dc2626 0%, #dc2626 10%, #E2E8F0 10%, #E2E8F0 100%);
     outline: none;
     -webkit-appearance: none;
     transition: background 0.2s;
@@ -156,31 +156,31 @@ header p {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #00A99D;
+    background: #dc2626;
     cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0, 169, 157, 0.4);
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.4);
     transition: all 0.2s;
 }
 
 .radius-slider::-webkit-slider-thumb:hover {
     transform: scale(1.1);
-    box-shadow: 0 3px 10px rgba(0, 169, 157, 0.6);
+    box-shadow: 0 3px 10px rgba(220, 38, 38, 0.6);
 }
 
 .radius-slider::-moz-range-thumb {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #00A99D;
+    background: #dc2626;
     cursor: pointer;
     border: none;
-    box-shadow: 0 2px 6px rgba(0, 169, 157, 0.4);
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.4);
     transition: all 0.2s;
 }
 
 .radius-slider::-moz-range-thumb:hover {
     transform: scale(1.1);
-    box-shadow: 0 3px 10px rgba(0, 169, 157, 0.6);
+    box-shadow: 0 3px 10px rgba(220, 38, 38, 0.6);
 }
 
 .radius-slider::-moz-range-track {
@@ -189,7 +189,7 @@ header p {
 }
 
 .radius-slider::-moz-range-progress {
-    background: #00A99D;
+    background: #dc2626;
     border-radius: 4px;
 }
 
@@ -210,13 +210,13 @@ header p {
 
 .controls input:focus {
     outline: none;
-    border-color: #00A99D;
-    box-shadow: 0 0 0 3px rgba(0, 169, 157, 0.1);
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
 .controls button {
     padding: 10px 20px;
-    background: linear-gradient(135deg, #00A99D 0%, #008F85 100%);
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     color: white;
     border: none;
     border-radius: 8px;
@@ -225,12 +225,12 @@ header p {
     cursor: pointer;
     transition: all 0.2s ease;
     align-self: stretch;
-    box-shadow: 0 2px 8px rgba(0, 169, 157, 0.2);
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
 }
 
 .controls button:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 169, 157, 0.35);
+    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.35);
 }
 
 .controls button:disabled {
@@ -278,8 +278,8 @@ header p {
 
 /* Location Display - Modern Badge Style */
 .location-display {
-    background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%);
-    color: #234E52;
+    background: linear-gradient(135deg, #fff5f5 0%, #fecaca 100%);
+    color: #4a1515;
     padding: 10px 14px;
     border-radius: 8px;
     display: flex;
@@ -287,8 +287,8 @@ header p {
     gap: 4px;
     font-size: 0.8rem;
     font-weight: 500;
-    border: 1px solid #81E6D9;
-    box-shadow: 0 2px 8px rgba(0, 169, 157, 0.1);
+    border: 1px solid #fca5a5;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.1);
 }
 
 .location-icon {
@@ -374,7 +374,7 @@ header p {
 .step:hover {
     transform: translateX(4px);
     box-shadow: 0 4px 12px rgba(0, 169, 157, 0.1);
-    border-color: #00A99D;
+    border-color: #dc2626;
 }
 
 .step-number {
@@ -383,7 +383,7 @@ header p {
     justify-content: center;
     width: 24px;
     height: 24px;
-    background: linear-gradient(135deg, #00A99D 0%, #008F85 100%);
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     color: white;
     border-radius: 50%;
     font-weight: 700;
@@ -404,10 +404,10 @@ header p {
 }
 
 .what-to-expect {
-    background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%);
+    background: linear-gradient(135deg, #fff5f5 0%, #fecaca 100%);
     padding: 16px;
     border-radius: 10px;
-    border: 1px solid #81E6D9;
+    border: 1px solid #fca5a5;
     max-width: 100%;
     width: 100%;
 }
@@ -438,7 +438,7 @@ header p {
     content: "✓";
     position: absolute;
     left: 0;
-    color: #00A99D;
+    color: #dc2626;
     font-weight: 700;
     font-size: 0.9rem;
 }
@@ -473,7 +473,7 @@ header p {
 .loading h3 {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #00A99D;
+    color: #dc2626;
     margin: 0;
 }
 
@@ -506,9 +506,9 @@ header p {
 /* Final Score - Modern Design */
 .final-score {
     padding: 24px;
-    background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%);
+    background: linear-gradient(135deg, #fff5f5 0%, #fecaca 100%);
     border-radius: 12px;
-    border: 1px solid #81E6D9;
+    border: 1px solid #fca5a5;
 }
 
 .final-score h3 {
@@ -547,8 +547,8 @@ header p {
 }
 
 .score-circle.good {
-    border-color: #00A99D;
-    color: #00A99D;
+    border-color: #dc2626;
+    color: #dc2626;
 }
 
 .score-circle.average {
@@ -605,7 +605,7 @@ header p {
 }
 
 .sub-score:first-child {
-    color: #00A99D;
+    color: #dc2626;
 }
 
 .sub-score:last-child {
@@ -644,7 +644,7 @@ header p {
 
 .metric-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 169, 157, 0.1);
+    box-shadow: 0 4px 8px rgba(220, 38, 38, 0.1);
 }
 
 .metric-icon {
@@ -668,7 +668,7 @@ header p {
 }
 
 .metric-value.good {
-    color: #00A99D;
+    color: #dc2626;
 }
 
 .metric-value.average {
@@ -826,9 +826,9 @@ header p {
 }
 
 .explanation-list li {
-    background: #EBF8FF;
+    background: #fff5f5;
     padding: 10px 12px;
-    border-left: 3px solid #00A99D;
+    border-left: 3px solid #dc2626;
     border-radius: 6px;
     color: #2D3748;
     line-height: 1.5;
@@ -871,13 +871,13 @@ header p {
 
 /* Location Info */
 .location-info {
-    background: linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%);
-    color: #234E52;
+    background: linear-gradient(135deg, #fff5f5 0%, #fecaca 100%);
+    color: #4a1515;
     padding: 14px 16px;
     border-radius: 10px;
     margin-bottom: 0;
-    box-shadow: 0 2px 8px rgba(0, 169, 157, 0.1);
-    border: 1px solid #81E6D9;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.1);
+    border: 1px solid #fca5a5;
 }
 
 .location-info h4 {

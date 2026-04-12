@@ -602,12 +602,12 @@ function renderIndoorResults(result) {
                         <circle cx="100" cy="100" r="80" fill="none" stroke="${activeColor}" stroke-width="20" stroke-linecap="round" stroke-dasharray="${gaugeCircumference}" stroke-dashoffset="${gaugeOffset}" transform="rotate(-90 100 100)"/>
                     </svg>
                     <div class="gauge-content">
-                        <div class="gauge-score">${Math.round(overallScore)}</div>
+                        <div class="gauge-score" style="color: ${activeColor};">${Math.round(overallScore)}</div>
                     </div>
                 </div>
                 <div class="analysis-info">
                     <div class="info-label">Overall Feng Shui</div>
-                    <div class="info-status"><strong>${scoreGrade.description}</strong></div>
+                    <div class="info-status"><strong style="color: ${activeColor};">${scoreGrade.description}</strong></div>
                     <div class="color-bar">
                         <div class="color-segment" style="background-color:${activeColor}; width:100%;"></div>
                     </div>
@@ -624,8 +624,7 @@ function renderIndoorResults(result) {
             <div class="scores-grid">
                 ${scoreEntries.map(([key, value]) => `
                     <div class="score-card">
-                        <span class="value">${Math.round(value)}</span>
-                        <div class="score-indicator" style="background: ${getStatusColorIndoor(value)};"></div>
+                        <span class="value" style="color: ${getStatusColorIndoor(value)};">${Math.round(value)}</span>
                         <span class="label">${formatScoreLabel(key)}</span>
                     </div>
                 `).join('')}
@@ -649,8 +648,7 @@ function renderIndoorResults(result) {
         <div class="scores-grid element-scores-grid">
             ${Object.entries(fiveElements).map(([element, value]) => `
                 <div class="score-card">
-                    <span class="value">${Math.round(value)}</span>
-                    <span class="score-indicator" style="background: ${getStatusColorIndoor(value)};"></span>
+                    <span class="value" style="color: ${getStatusColorIndoor(value)};">${Math.round(value)}</span>
                     <span class="label" style="text-transform: capitalize;">${element}</span>
                 </div>
             `).join('')}

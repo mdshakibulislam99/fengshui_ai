@@ -2,7 +2,10 @@
 # Fetches and analyzes wind data from ERA5 dataset via Google Earth Engine
 # Calculates wind metrics for Feng Shui analysis (direction, speed, exposure)
 
-import ee
+try:
+    import ee
+except ImportError:
+    ee = None
 import logging
 import math
 import statistics
@@ -61,6 +64,8 @@ class ERA5WindService:
     
     def _authenticate(self):
         """Authenticate with Google Earth Engine."""
+        if ee is None:
+            raise RuntimeError("ee module not available")
         try:
             # Check if already authenticated
             try:

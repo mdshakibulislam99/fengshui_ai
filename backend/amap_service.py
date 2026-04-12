@@ -67,18 +67,18 @@ def geocode_address(address: str, city: Optional[str] = None) -> Optional[Dict]:
         else:
             logger.warning(f"Geocoding failed: {data.get('info')}")
 
-            # Fallback 1: input tips often resolves detailed POI/area names that
+            # Fallback 1: place text search — most precise for POI names.
+            text_result = geocode_via_place_text(address, city)
+            if text_result:
+                logger.info(f"Geocoding resolved via place text search: {text_result}")
+                return text_result
+
+            # Fallback 2: input tips often resolves detailed POI/area names that
             # are rejected by strict geocode parsing.
             tips_result = geocode_via_input_tips(address, city)
             if tips_result:
                 logger.info(f"Geocoding resolved via input tips: {tips_result}")
                 return tips_result
-
-            # Fallback 2: place text search is robust for scenic spots/villages.
-            text_result = geocode_via_place_text(address, city)
-            if text_result:
-                logger.info(f"Geocoding resolved via place text search: {text_result}")
-                return text_result
 
             return None
             
@@ -218,6 +218,7 @@ def geocode_via_place_text(address: str, city: Optional[str] = None) -> Optional
 def search_nearby_pois(longitude: float, latitude: float, radius: int = 500) -> Dict[str, List[Dict]]:
     """
     Search for nearby Points of Interest (POI) around a location.
+    Falls back to OpenStreetMap Overpass API if AMap hits rate limits.
     
     Args:
         longitude: Longitude of center point
@@ -237,8 +238,9 @@ def search_nearby_pois(longitude: float, latitude: float, radius: int = 500) -> 
     
     poi_results = {}
     location_str = f"{longitude},{latitude}"
+    rate_limited_categories = []
     
-    # Search for each POI category
+    # Search for each POI category via AMap
     for category_name, category_code in config.POI_CATEGORIES.items():
         try:
             params = {
@@ -254,6 +256,7 @@ def search_nearby_pois(longitude: float, latitude: float, radius: int = 500) -> 
             response = _get_with_retry(config.AMAP_POI_SEARCH_URL, params, timeout=10)
             if response is None:
                 poi_results[category_name] = []
+                rate_limited_categories.append(category_name)
                 continue
             
             data = response.json()
@@ -263,8 +266,12 @@ def search_nearby_pois(longitude: float, latitude: float, radius: int = 500) -> 
                 poi_results[category_name] = parse_pois(pois)
                 logger.info(f"Found {len(pois)} POIs for category: {category_name}")
             else:
-                logger.warning(f"POI search failed for {category_name}: {data.get('info')}")
+                info = data.get('info', '')
+                logger.warning(f"POI search failed for {category_name}: {info}")
                 poi_results[category_name] = []
+                # Detect rate limit / quota exceeded
+                if 'CUQPS' in info or 'EXCEEDED' in info or 'LIMIT' in info or data.get('infocode') in ('10003', '10004'):
+                    rate_limited_categories.append(category_name)
             
             # Rate limiting - avoid hitting API too quickly
             time.sleep(0.1)
@@ -272,6 +279,20 @@ def search_nearby_pois(longitude: float, latitude: float, radius: int = 500) -> 
         except Exception as e:
             logger.error(f"Error searching POIs for {category_name}: {str(e)}")
             poi_results[category_name] = []
+    
+    # --- OSM Overpass fallback for rate-limited categories ---
+    if rate_limited_categories:
+        logger.info(f"⚠️ AMap rate-limited {len(rate_limited_categories)} categories: {rate_limited_categories}")
+        logger.info(f"🌍 Falling back to OpenStreetMap Overpass API...")
+        try:
+            from osm_fallback import search_nearby_pois_osm
+            osm_data = search_nearby_pois_osm(longitude, latitude, radius, rate_limited_categories)
+            for cat in rate_limited_categories:
+                if osm_data.get(cat):
+                    poi_results[cat] = osm_data[cat]
+                    logger.info(f"✓ OSM fallback provided {len(osm_data[cat])} POIs for {cat}")
+        except Exception as e:
+            logger.error(f"OSM fallback failed: {e}")
     
     return poi_results
 
@@ -356,13 +377,37 @@ def get_road_network_data(longitude: float, latitude: float, radius: int = 500) 
             # Extract intersection points (simplified)
             intersections = extract_intersections(roads)
             
+            road_count = len(roads)
+            
+            # If AMap returns too few roads (likely sparse data), try OSM fallback
+            if road_count < 5:
+                logger.info(f"⚠️ AMap returned only {road_count} roads (sparse), trying OSM fallback...")
+                try:
+                    from osm_fallback import get_road_network_data_osm
+                    osm_result = get_road_network_data_osm(longitude, latitude, radius)
+                    if osm_result.get('road_count', 0) >= 5:
+                        logger.info(f"✅ OSM returned {osm_result['road_count']} roads, using OSM data")
+                        return osm_result
+                except Exception as osm_e:
+                    logger.warning(f"OSM road fallback failed: {osm_e}")
+                # If OSM fallback didn't help or failed, return AMap's sparse data
+            
             return {
                 'roads': roads,
                 'intersections': intersections,
-                'road_count': len(roads)
+                'road_count': road_count
             }
         else:
-            logger.warning(f"Road network search failed: {data.get('info')}")
+            info = data.get('info', '')
+            logger.warning(f"Road network search failed: {info}")
+            # Fall back to OSM if rate limited or on error
+            if 'CUQPS' in info or 'EXCEEDED' in info or 'LIMIT' in info or 'error' in info.lower():
+                logger.info("🌍 Falling back to OSM for road network data...")
+                try:
+                    from osm_fallback import get_road_network_data_osm
+                    return get_road_network_data_osm(longitude, latitude, radius)
+                except Exception as osm_e:
+                    logger.error(f"OSM road fallback failed: {osm_e}")
             return {'roads': [], 'intersections': [], 'road_count': 0}
             
     except Exception as e:
@@ -401,7 +446,7 @@ def parse_road_features(pois: List[Dict]) -> List[Dict]:
 
 def extract_intersections(roads: List[Dict]) -> List[Dict]:
     """
-    Extract intersection points from road data (simplified approach).
+    Extract intersection points from road data.
     
     Args:
         roads: List of road dictionaries
@@ -409,17 +454,35 @@ def extract_intersections(roads: List[Dict]) -> List[Dict]:
     Returns:
         List of intersection points
     """
-    # Simplified: treat each road point as a potential intersection
-    # In a real implementation, you'd need actual road geometry data
     intersections = []
     
+    # First try to find roads explicitly marked as intersections/junctions
     for road in roads:
         if 'intersection' in road.get('name', '').lower() or \
-           'junction' in road.get('name', '').lower():
+           'junction' in road.get('name', '').lower() or \
+           'crossing' in road.get('name', '').lower():
             intersections.append({
                 'longitude': road['longitude'],
                 'latitude': road['latitude'],
                 'name': road.get('name', '')
+            })
+    
+    # If we found explicit intersections, return them
+    if intersections:
+        return intersections
+    
+    # Otherwise, estimate intersections from road count
+    # Assumption: ~80% of roads in an area are connected at intersections
+    # So for N roads, we expect roughly 0.8*N intersection points
+    if roads:
+        estimated_count = max(1, int(len(roads) * 0.8))
+        # Use the roads with best (shortest distance) as intersection points
+        sorted_roads = sorted(roads, key=lambda r: r.get('distance', float('inf')))
+        for i, road in enumerate(sorted_roads[:estimated_count]):
+            intersections.append({
+                'longitude': road['longitude'],
+                'latitude': road['latitude'],
+                'name': f"Intersection{i+1}"
             })
     
     return intersections

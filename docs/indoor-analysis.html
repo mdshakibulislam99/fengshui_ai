@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="main-styles.css">
     <link rel="stylesheet" href="indoor-styles.css">
     <link rel="stylesheet" href="chatbot.css">
+    <script src="translations.js" defer></script>
+    <script src="language-manager.js" defer></script>
     <script src="header.js" defer></script>
 </head>
 <body class="indoor-landing">
@@ -19,9 +21,9 @@
         <!-- Mode Selection Screen -->
         <div id="modeSelection" class="mode-selection active">
             <div class="mode-content">
-                <p class="mode-kicker">Indoor Engine</p>
-                <h1 class="mode-title">Indoor Room Feng Shui Analysis</h1>
-                <p class="mode-subtitle">Choose how you want to analyze your room</p>
+                <p class="mode-kicker" data-i18n="indoor.engine.kicker">Indoor Engine</p>
+                <h1 class="mode-title" data-i18n="indoor.page.title">Indoor Room Feng Shui Analysis</h1>
+                <p class="mode-subtitle" data-i18n="indoor.page.subtitle">Choose how you want to analyze your room</p>
                 <div class="mode-options">
                     <div class="mode-card mode-card-design" onclick="window.location.href='indoor-design.html'">
                         <div class="mode-visual mode-visual-design" aria-hidden="true">
@@ -33,14 +35,14 @@
                             </div>
                             <div class="mode-visual-chip">◌</div>
                         </div>
-                        <h3>Design Your Room</h3>
+                        <h3 data-i18n="indoor.design.title">Design Your Room</h3>
                         <ul class="mode-features">
-                            <li>3D room designer</li>
-                            <li>Drag &amp; drop furniture</li>
-                            <li>Real-time visualization</li>
-                            <li>Interactive placement</li>
+                            <li data-i18n="indoor.design.feat1">3D room designer</li>
+                            <li data-i18n="indoor.design.feat2">Drag &amp; drop furniture</li>
+                            <li data-i18n="indoor.design.feat3">Real-time visualization</li>
+                            <li data-i18n="indoor.design.feat4">Interactive placement</li>
                         </ul>
-                        <button class="mode-btn">Start Designing</button>
+                        <button class="mode-btn" data-i18n="indoor.design.btn">Start Designing</button>
                     </div>
                     <div class="mode-card mode-card-upload" onclick="window.location.href='indoor-upload.html'">
                         <div class="mode-visual mode-visual-upload" aria-hidden="true">
@@ -57,14 +59,14 @@
                                 <div class="upload-shot upload-shot-bottom"></div>
                             </div>
                         </div>
-                        <h3>Upload Room Photos</h3>
+                        <h3 data-i18n="indoor.upload.title">Upload Room Photos</h3>
                         <ul class="mode-features">
-                            <li>Multi-angle photos</li>
-                            <li>AI-powered analysis</li>
-                            <li>Quick &amp; easy insights</li>
-                            <li>Personalized tips</li>
+                            <li data-i18n="indoor.upload.feat1">Multi-angle photos</li>
+                            <li data-i18n="indoor.upload.feat2">AI-powered analysis</li>
+                            <li data-i18n="indoor.upload.feat3">Quick &amp; easy insights</li>
+                            <li data-i18n="indoor.upload.feat4">Personalized tips</li>
                         </ul>
-                        <button class="mode-btn">Upload Photos</button>
+                        <button class="mode-btn" data-i18n="indoor.upload.btn">Upload Photos</button>
                     </div>
 
                     <div class="mode-card mode-card-camera" onclick="window.location.href='indoor-camera.html'">
@@ -78,14 +80,14 @@
                             <div class="camera-reel camera-reel-top"></div>
                             <div class="camera-reel camera-reel-bottom"></div>
                         </div>
-                        <h3>Record with Camera</h3>
+                        <h3 data-i18n="indoor.camera.title">Record with Camera</h3>
                         <ul class="mode-features">
-                            <li>Live room walkthrough recording</li>
-                            <li>Auto frame extraction</li>
-                            <li>No manual photo sorting</li>
-                            <li>Fast one-take analysis</li>
+                            <li data-i18n="indoor.camera.feat1">Live room walkthrough recording</li>
+                            <li data-i18n="indoor.camera.feat2">Auto frame extraction</li>
+                            <li data-i18n="indoor.camera.feat3">No manual photo sorting</li>
+                            <li data-i18n="indoor.camera.feat4">Fast one-take analysis</li>
                         </ul>
-                        <button class="mode-btn">Use Camera</button>
+                        <button class="mode-btn" data-i18n="indoor.camera.btn">Use Camera</button>
                     </div>
                 </div>
             </div>

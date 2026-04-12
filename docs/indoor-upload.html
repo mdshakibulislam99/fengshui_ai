@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="chatbot.css">
     <!-- Chart.js for data visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="translations.js" defer></script>
+    <script src="language-manager.js" defer></script>
     <script src="header.js" defer></script>
 </head>
 <body>
@@ -21,76 +23,76 @@
         <!-- Upload Mode -->
         <div id="uploadMode" class="analysis-mode active">
             <div class="upload-header">
-                <button class="back-btn" onclick="window.location.href='indoor-analysis.html'">← Back to Selection</button>
-                <h2>📸 Upload Room Photos</h2>
-                <button class="guide-btn" type="button" onclick="openUploadGuideModal()">Guide</button>
+                <button class="back-btn" onclick="window.location.href='indoor-analysis.html'" data-i18n="upload.back.btn">← Back to Selection</button>
+                <h2 data-i18n="upload.page.title">📸 Upload Room Photos</h2>
+                <button class="guide-btn" type="button" onclick="openUploadGuideModal()" data-i18n="upload.guide.btn">Guide</button>
             </div>
 
             <div class="upload-workspace">
                 <div class="photo-upload-grid">
                     <div class="photo-upload-card">
                         <div class="upload-icon">🧭</div>
-                        <h4>North View</h4>
+                        <h4 data-i18n="dir.north">North View</h4>
                         <input type="file" id="photoNorth" accept="image/*" onchange="previewPhoto('north', this)">
                         <label for="photoNorth" class="upload-label">
-                            <span id="labelNorth">Click to Upload</span>
+                            <span id="labelNorth" data-i18n="upload.click">Click to Upload</span>
                         </label>
                         <div id="previewNorth" class="photo-preview"></div>
                     </div>
 
                     <div class="photo-upload-card">
                         <div class="upload-icon">🧭</div>
-                        <h4>South View</h4>
+                        <h4 data-i18n="dir.south">South View</h4>
                         <input type="file" id="photoSouth" accept="image/*" onchange="previewPhoto('south', this)">
                         <label for="photoSouth" class="upload-label">
-                            <span id="labelSouth">Click to Upload</span>
+                            <span id="labelSouth" data-i18n="upload.click">Click to Upload</span>
                         </label>
                         <div id="previewSouth" class="photo-preview"></div>
                     </div>
 
                     <div class="photo-upload-card">
                         <div class="upload-icon">🧭</div>
-                        <h4>East View</h4>
+                        <h4 data-i18n="dir.east">East View</h4>
                         <input type="file" id="photoEast" accept="image/*" onchange="previewPhoto('east', this)">
                         <label for="photoEast" class="upload-label">
-                            <span id="labelEast">Click to Upload</span>
+                            <span id="labelEast" data-i18n="upload.click">Click to Upload</span>
                         </label>
                         <div id="previewEast" class="photo-preview"></div>
                     </div>
 
                     <div class="photo-upload-card">
                         <div class="upload-icon">🧭</div>
-                        <h4>West View</h4>
+                        <h4 data-i18n="dir.west">West View</h4>
                         <input type="file" id="photoWest" accept="image/*" onchange="previewPhoto('west', this)">
                         <label for="photoWest" class="upload-label">
-                            <span id="labelWest">Click to Upload</span>
+                            <span id="labelWest" data-i18n="upload.click">Click to Upload</span>
                         </label>
                         <div id="previewWest" class="photo-preview"></div>
                     </div>
 
                     <div class="photo-upload-card floor-card">
                         <div class="upload-icon">📐</div>
-                        <h4>Floor Plan</h4>
+                        <h4 data-i18n="dir.floor">Floor Plan</h4>
                         <input type="file" id="photoFloor" accept="image/*" onchange="previewPhoto('floor', this)">
                         <label for="photoFloor" class="upload-label">
-                            <span id="labelFloor">Click to Upload</span>
+                            <span id="labelFloor" data-i18n="upload.click">Click to Upload</span>
                         </label>
                         <div id="previewFloor" class="photo-preview"></div>
                     </div>
                 </div>
 
                 <div class="upload-actions">
-                    <button class="analyze-btn-upload" onclick="analyzePhotos()" id="analyzePhotosBtn" disabled>
+                    <button class="analyze-btn-upload" onclick="analyzePhotos()" id="analyzePhotosBtn" disabled data-i18n="upload.analyze.btn">
                         Analyze Room
                     </button>
-                    <p class="upload-note">At least 3 photos required for analysis</p>
+                    <p class="upload-note" data-i18n="upload.note">At least 3 photos required for analysis</p>
                 </div>
             </div>
 
             <!-- Results Section for Upload Mode -->
             <div id="uploadResults" class="results-section ei-page" style="display: none; margin-top: 32px;">
                 <div class="ei-shell">
-                    <h2 class="analysis-result-heading">AI Feng Shui Analysis Result</h2>
+                    <h2 class="analysis-result-heading" data-i18n="upload.result.title">AI Feng Shui Analysis Result</h2>
                     <section class="ei-two-column-layout">
                         <!-- Left Column: Analysis Factor Cards -->
                         <div class="ei-left-column">

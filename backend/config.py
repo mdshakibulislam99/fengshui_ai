@@ -6,6 +6,14 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+
+def _env_float(name: str, default: float) -> float:
+    """Read a float environment variable with safe fallback."""
+    try:
+        return float(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return float(default)
+
 class Config:
     """Application configuration class."""
     
@@ -58,6 +66,9 @@ class Config:
     DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY', 'YOUR_DEEPSEEK_API_KEY_HERE')
     DEEPSEEK_API_URL = os.getenv('DEEPSEEK_API_URL', 'https://api.deepseek.com/v1/chat/completions')
     DEEPSEEK_MODEL = os.getenv('DEEPSEEK_MODEL', 'deepseek-chat')  # or 'deepseek-coder' for technical analysis
+    DEEPSEEK_ALIGNMENT_ENABLED = os.getenv('DEEPSEEK_ALIGNMENT_ENABLED', 'false').lower() == 'true'
+    DEEPSEEK_SCORE_TIMEOUT_SEC = _env_float('DEEPSEEK_SCORE_TIMEOUT_SEC', 2.2)
+    SCORING_MAX_LATENCY_SEC = _env_float('SCORING_MAX_LATENCY_SEC', 8.0)
 
     # Weather API Configuration
     WEATHER_API_KEY = os.getenv('WEATHER_API_KEY', '')

@@ -136,7 +136,15 @@ def generate_synthetic_data(n_samples: int = 1000) -> Tuple[pd.DataFrame, np.nda
 
 def generate_rule_based_scores(features_df: pd.DataFrame) -> np.ndarray:
     """
-    Generate Feng Shui scores using rule-based logic.
+    Generate Feng Shui scores using IMPROVED CONTEXT-AWARE rule-based logic.
+    
+    Key insight: System should recognize that HIGH environmental quality indicators
+    (green, orientation, environment) = HIGH feng shui score, regardless of water.
+    
+    Different location types (campus, waterfront, urban, mountain) have
+    different optimal feature patterns. This function recognizes location
+    type from features and applies appropriate scoring AND ensures good    
+    locations score appropriately high.
     
     Args:
         features_df: DataFrame with feature columns
@@ -147,33 +155,71 @@ def generate_rule_based_scores(features_df: pd.DataFrame) -> np.ndarray:
     scores = []
     
     for _, row in features_df.iterrows():
-        # Base score from features
-        score = 0
+        # Detect location type from feature pattern
+        green = row['green_area_ratio']
+        water = row['water_proximity']
+        building = row['building_density']
+        roads = row['road_intersection_density']
+        orient = row['orientation_score']
+        env_qual = row['environmental_quality']
+        spirit = row['spiritual_presence']
         
-        # Green space (0-20 points)
-        score += row['green_area_ratio'] * 20
+        # Location type detection
+        is_waterfront = water > 0.60  # High water → waterfront
+        is_campus = green > 0.50 and water < 0.25 and building < 0.70  # Campus pattern
+        is_dense_urban = building > 0.70 and green < 0.40  # Dense urban
+        is_mountain = green > 0.60 and building < 0.40  # Mountain/rural
         
-        # Water proximity (0-15 points)
-        score += row['water_proximity'] * 15
+        # QUALITY SCORE: How good is this location's overall environment?
+        # High green + high orientation + high environment = high quality
+        quality_indicator = (green * 0.35) + (orient * 0.35) + (env_qual * 0.30)
         
-        # Building density (0-15 points, inverted)
-        score += (1 - row['building_density']) * 15
+        # Initialize score with quality baseline
+        # Good quality locations should START at 70+
+        if quality_indicator > 0.80:
+            score = 75 + (quality_indicator - 0.70) * 20  # 75-100 for excellent quality
+        elif quality_indicator > 0.70:
+            score = 70 + (quality_indicator - 0.65) * 10  # 70-75 for good quality  
+        elif quality_indicator > 0.60:
+            score = 60 + (quality_indicator - 0.55) * 10  # 60-70 for moderate
+        else:
+            score = 50 + quality_indicator * 20  # 50-60 for poor
         
-        # Road density (0-10 points, optimal at 0.5)
-        road_score = 1 - abs(row['road_intersection_density'] - 0.5) * 2
-        score += max(road_score, 0) * 10
+        # LOCATION TYPE ADJUSTMENTS: Add bonuses for location-specific good features
+        if is_waterfront:
+            # Waterfront bonus for high water  
+            score += water * 10
+            # Penalty for low green in waterfront
+            if green < 0.30:
+                score -= 10
+            
+        elif is_campus:
+            # Campus bonus for excellent orientation
+            score += (orient - 0.60) * 15 if orient > 0.60 else 0
+            # Campus bonus for high env quality
+            score += (env_qual - 0.60) * 10 if env_qual > 0.60 else 0
+            # NO penalty for low water (it's normal)
+            
+        elif is_dense_urban:
+            # Urban bonus for roads accessibility  
+            if 0.4 < roads < 0.7:
+                score += 8
+            # Urban bonus for good environment despite density
+            score += (env_qual - 0.60) * 8 if env_qual > 0.60 else 0
+            
+        elif is_mountain:
+            # Mountain bonus for high green and water
+            score += (green - 0.50) * 10 if green > 0.50 else 0
+            score += (water - 0.40) * 8 if water > 0.40 else 0
         
-        # Orientation (0-15 points)
-        score += row['orientation_score'] * 15
+        # GENERAL BONUS: Recognize excellent specific features
+        if orient > 0.85:
+            score += 5  # Excellent orientation helps all locations
+        if env_qual > 0.75:
+            score += 5  # Excellent environment helps all locations
         
-        # Environmental quality (0-15 points)
-        score += row['environmental_quality'] * 15
-        
-        # Spiritual presence (0-10 points)
-        score += row['spiritual_presence'] * 10
-        
-        # Add some noise for realism
-        noise = np.random.normal(0, 3)
+        # Add slight noise for realism (±1.5 points)
+        noise = np.random.normal(0, 1.5)
         score += noise
         
         # Ensure score is in valid range

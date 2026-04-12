@@ -6,7 +6,10 @@ from datetime import datetime, timedelta
 from functools import lru_cache
 from typing import Dict
 
-import ee
+try:
+    import ee
+except ImportError:
+    ee = None
 
 try:
     from .config import flood_config
@@ -34,6 +37,8 @@ class GEEFloodService:
 
     def _authenticate(self):
         """Authenticate with Google Earth Engine."""
+        if ee is None:
+            raise RuntimeError("ee module not available")
         try:
             try:
                 ee.Initialize()

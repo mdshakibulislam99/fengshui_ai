@@ -2,7 +2,10 @@ import os
 import logging
 from functools import lru_cache
 
-import ee
+try:
+    import ee
+except ImportError:
+    ee = None
 
 from .config import HydroSHEDSConfig
 
@@ -28,6 +31,9 @@ class HydroSHEDSService:
 
     def _authenticate(self):
         """Authenticate Google Earth Engine using service account credentials."""
+        if ee is None:
+            logger.warning("ee module not available - HydroSHEDS unavailable")
+            return
         if not self.service_account_path or not os.path.exists(self.service_account_path):
             logger.warning(f"HydroSHEDS service account file not found: {self.service_account_path}")
             return
@@ -149,6 +155,7 @@ class HydroSHEDSService:
                 'error': str(e)
             }
 
+    @lru_cache(maxsize=128)
     def get_river_proximity_score(self, lon: float, lat: float, radius_m: int = None) -> dict:
         """
         Convert HydroSHEDS metrics into a Feng Shui river proximity score.
@@ -196,6 +203,3 @@ class HydroSHEDSService:
             'success': True,
             'source': metrics.get('source', 'HydroSHEDS')
         }
-
-
-hydrosheds_service = HydroSHEDSService()

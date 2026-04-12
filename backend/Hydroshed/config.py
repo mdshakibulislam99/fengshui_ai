@@ -20,10 +20,18 @@ class HydroSHEDSConfig:
 
     # Reuse DEM service account by default so setup remains simple.
     HYDROSHEDS_DIR = Path(__file__).parent
-    HYDROSHEDS_GEE_SERVICE_ACCOUNT_PATH = os.getenv(
+    _BACKEND_DIR = HYDROSHEDS_DIR.parent
+    _raw_sa_path = os.getenv(
         'HYDROSHEDS_GEE_SERVICE_ACCOUNT_PATH',
-        str(HYDROSHEDS_DIR.parent / 'dem' / 'service_account.json')
+        str(_BACKEND_DIR / 'dem' / 'service_account.json')
     )
+    # Resolve relative paths: try from backend dir, then from project root
+    if not os.path.isabs(_raw_sa_path) and not os.path.exists(_raw_sa_path):
+        _candidate = str(_BACKEND_DIR / _raw_sa_path)
+        if not os.path.exists(_candidate):
+            _candidate = str(_BACKEND_DIR.parent / _raw_sa_path)
+        _raw_sa_path = _candidate
+    HYDROSHEDS_GEE_SERVICE_ACCOUNT_PATH = _raw_sa_path
 
     # HydroSHEDS flow accumulation image in Earth Engine.
     # Typical values: WWF/HydroSHEDS/15ACC (15 arc-second), WWF/HydroSHEDS/03ACC (3 arc-second)

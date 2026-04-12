@@ -33,7 +33,7 @@ class FengShuiChatbot {
                     <circle cx="8" cy="9" r="1.5" fill="white"/>
                     <circle cx="16" cy="9" r="1.5" fill="white"/>
                 </svg>
-                <span class="chat-btn-text">Ask AI</span>
+                <span class="chat-btn-text" data-i18n="chat.btn">Ask AI</span>
             </button>
             
             <!-- Chat Window -->
@@ -48,8 +48,8 @@ class FengShuiChatbot {
                             </svg>
                         </div>
                         <div class="chat-title">
-                            <h3>Feng Shui AI Assistant</h3>
-                            <p class="chat-subtitle">Get personalized improvement suggestions</p>
+                            <h3 data-i18n="chat.title">Feng Shui AI Assistant</h3>
+                            <p class="chat-subtitle" data-i18n="chat.subtitle">Get personalized improvement suggestions</p>
                         </div>
                     </div>
                     <button id="chat-close-btn" class="chat-close-btn" title="Close">
@@ -62,19 +62,19 @@ class FengShuiChatbot {
                 <div id="chat-messages" class="chat-messages">
                     <div class="chat-welcome">
                         <div class="welcome-icon">💡</div>
-                        <h4>How can I help improve your space?</h4>
-                        <p>I'll analyze your feng shui results and provide actionable recommendations.</p>
+                        <h4 data-i18n="chat.welcome.title">How can I help improve your space?</h4>
+                        <p data-i18n="chat.welcome.desc">I'll analyze your feng shui results and provide actionable recommendations.</p>
                     </div>
                 </div>
                 
                 <div class="chat-quick-actions" id="quick-actions">
-                    <button class="quick-action-btn" data-action="improve">
+                    <button class="quick-action-btn" data-action="improve" data-i18n="chat.quick.improve">
                         🎯 How to improve overall?
                     </button>
-                    <button class="quick-action-btn" data-action="qi-flow">
+                    <button class="quick-action-btn" data-action="qi-flow" data-i18n="chat.quick.qi">
                         🌊 Improve Qi flow
                     </button>
-                    <button class="quick-action-btn" data-action="budget">
+                    <button class="quick-action-btn" data-action="budget" data-i18n="chat.quick.budget">
                         💰 Budget-friendly tips
                     </button>
                 </div>
@@ -84,6 +84,7 @@ class FengShuiChatbot {
                         <textarea 
                             id="chat-input" 
                             class="chat-input" 
+                            data-i18n="chat.input.placeholder"
                             placeholder="Ask about improvements..."
                             rows="1"
                         ></textarea>
@@ -93,7 +94,7 @@ class FengShuiChatbot {
                             </svg>
                         </button>
                     </div>
-                    <p class="chat-disclaimer">AI-powered suggestions based on feng shui principles</p>
+                    <p class="chat-disclaimer" data-i18n="chat.disclaimer">AI-powered suggestions based on feng shui principles</p>
                 </div>
             </div>
         `;
@@ -114,10 +115,18 @@ class FengShuiChatbot {
         // Quick action buttons
         document.querySelectorAll('.quick-action-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const action = e.target.dataset.action;
+                const action = e.currentTarget.dataset.action;
                 this.handleQuickAction(action);
             });
         });
+
+        // Re-apply translations when language changes
+        window.addEventListener('qilang:changed', () => {
+            this.applyTranslations();
+        });
+
+        // Apply current language immediately
+        this.applyTranslations();
         
         // Enter to send (Shift+Enter for new line)
         input.addEventListener('keydown', (e) => {
@@ -162,13 +171,29 @@ class FengShuiChatbot {
         toggleBtn.classList.remove('chat-open');
     }
     
+    applyTranslations() {
+        if (typeof QiLang === 'undefined') return;
+        const container = document.getElementById('fengshui-chatbot');
+        if (!container) return;
+        container.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            const text = QiLang.get(key);
+            if (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && el.type !== 'button')) {
+                el.placeholder = text;
+            } else {
+                el.textContent = text;
+            }
+        });
+    }
+
     showNoAnalysisMessage() {
         const messagesContainer = document.getElementById('chat-messages');
+        const text = (typeof QiLang !== 'undefined') ? QiLang.get('chat.no.analysis') : 'Please run a feng shui analysis first. Once you have results, I can provide personalized improvement suggestions!';
         const noAnalysisMsg = `
             <div class="chat-message bot-message">
                 <div class="message-avatar">🤖</div>
                 <div class="message-content">
-                    <p>Please run a feng shui analysis first. Once you have results, I can provide personalized improvement suggestions!</p>
+                    <p>${text}</p>
                 </div>
             </div>
         `;
@@ -189,6 +214,7 @@ class FengShuiChatbot {
     }
     
     handleQuickAction(action) {
+        // Always send queries in English to the backend for consistent AI responses
         let query = '';
         switch(action) {
             case 'improve':
@@ -384,11 +410,13 @@ class FengShuiChatbot {
     
     clearChat() {
         const messagesContainer = document.getElementById('chat-messages');
+        const welcomeTitle = (typeof QiLang !== 'undefined') ? QiLang.get('chat.welcome.title') : 'How can I help improve your space?';
+        const welcomeDesc = (typeof QiLang !== 'undefined') ? QiLang.get('chat.welcome.desc') : "I'll analyze your feng shui results and provide actionable recommendations.";
         messagesContainer.innerHTML = `
             <div class="chat-welcome">
                 <div class="welcome-icon">💡</div>
-                <h4>How can I help improve your space?</h4>
-                <p>I'll analyze your feng shui results and provide actionable recommendations.</p>
+                <h4 data-i18n="chat.welcome.title">${welcomeTitle}</h4>
+                <p data-i18n="chat.welcome.desc">${welcomeDesc}</p>
             </div>
         `;
         

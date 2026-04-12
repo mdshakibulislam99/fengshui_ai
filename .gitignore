@@ -46,6 +46,13 @@ Thumbs.db
 config.ini
 secrets.json
 
+# GEE Service Account Credentials (never commit these)
+backend/dem/service_account.json
+*service_account*.json
+
+# Environment files (contain real API keys)
+backend/.env
+
 # AI Models
 *.pkl
 *.h5

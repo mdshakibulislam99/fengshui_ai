@@ -10,22 +10,24 @@
     <link rel="stylesheet" href="outdoor-analysis-v2.css">
     <link rel="stylesheet" href="chatbot.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="translations.js" defer></script>
+    <script src="language-manager.js" defer></script>
     <script src="header.js" defer></script>
 </head>
 <body class="indoor-camera-page">
     <div class="indoor-container">
         <div class="analysis-mode active">
             <div class="upload-header">
-                <button class="back-btn" onclick="window.location.href='indoor-analysis.html'">← Back to Selection</button>
-                <h2>📷 Camera Room Capture Analysis</h2>
-                <button class="guide-btn" type="button" onclick="openCameraGuideModal()">Guide</button>
+                <button class="back-btn" onclick="window.location.href='indoor-analysis.html'" data-i18n="camera.back.btn">← Back to Selection</button>
+                <h2 data-i18n="camera.page.title">📷 Camera Room Capture Analysis</h2>
+                <button class="guide-btn" type="button" onclick="openCameraGuideModal()" data-i18n="camera.guide.btn">Guide</button>
             </div>
 
             <div class="upload-workspace">
                 <div class="camera-capture-card">
                     <div class="camera-capture-head">
-                        <h3>Guided Direction Capture</h3>
-                        <p>Use live camera and capture each direction intentionally.</p>
+                        <h3 data-i18n="camera.capture.title">Guided Direction Capture</h3>
+                        <p data-i18n="camera.capture.desc">Use live camera and capture each direction intentionally.</p>
                     </div>
 
                     <div class="camera-preview-wrap">
@@ -33,75 +35,75 @@
                     </div>
 
                     <div class="camera-direction-guide">
-                        <p class="camera-direction-title">Current capture target: <strong id="cameraCurrentDirection">North</strong></p>
+                        <p class="camera-direction-title"><span data-i18n="camera.direction.label">Current capture target:</span> <strong id="cameraCurrentDirection">North</strong></p>
                         <div class="camera-direction-chips">
-                            <button class="camera-direction-chip" type="button" onclick="selectCameraDirection('north')" id="dirChipNorth">North</button>
-                            <button class="camera-direction-chip" type="button" onclick="selectCameraDirection('south')" id="dirChipSouth">South</button>
-                            <button class="camera-direction-chip" type="button" onclick="selectCameraDirection('east')" id="dirChipEast">East</button>
-                            <button class="camera-direction-chip" type="button" onclick="selectCameraDirection('west')" id="dirChipWest">West</button>
-                            <button class="camera-direction-chip" type="button" onclick="selectCameraDirection('floor')" id="dirChipFloor">Floor</button>
+                            <button class="camera-direction-chip" type="button" onclick="selectCameraDirection('north')" id="dirChipNorth" data-i18n="camera.dir.north">North</button>
+                            <button class="camera-direction-chip" type="button" onclick="selectCameraDirection('south')" id="dirChipSouth" data-i18n="camera.dir.south">South</button>
+                            <button class="camera-direction-chip" type="button" onclick="selectCameraDirection('east')" id="dirChipEast" data-i18n="camera.dir.east">East</button>
+                            <button class="camera-direction-chip" type="button" onclick="selectCameraDirection('west')" id="dirChipWest" data-i18n="camera.dir.west">West</button>
+                            <button class="camera-direction-chip" type="button" onclick="selectCameraDirection('floor')" id="dirChipFloor" data-i18n="camera.dir.floor">Floor</button>
                         </div>
                         <div class="camera-capture-actions">
-                            <button class="camera-btn" type="button" onclick="captureCurrentDirection()" id="captureDirectionBtn" disabled>Capture Current Direction</button>
-                            <button class="camera-btn camera-btn-secondary" type="button" onclick="retakeCurrentDirection()" id="retakeDirectionBtn" disabled>Retake Current Direction</button>
+                            <button class="camera-btn" type="button" onclick="captureCurrentDirection()" id="captureDirectionBtn" disabled data-i18n="camera.btn.capture">Capture Current Direction</button>
+                            <button class="camera-btn camera-btn-secondary" type="button" onclick="retakeCurrentDirection()" id="retakeDirectionBtn" disabled data-i18n="camera.btn.retake">Retake Current Direction</button>
                         </div>
                     </div>
 
                     <div class="camera-actions">
-                        <button class="camera-btn" type="button" onclick="startRoomCamera()" id="startCameraBtn">Start Camera</button>
-                        <button class="camera-btn camera-btn-secondary" type="button" onclick="stopRoomCamera()" id="stopCameraBtn" disabled>Stop Camera</button>
+                        <button class="camera-btn" type="button" onclick="startRoomCamera()" id="startCameraBtn" data-i18n="camera.btn.start">Start Camera</button>
+                        <button class="camera-btn camera-btn-secondary" type="button" onclick="stopRoomCamera()" id="stopCameraBtn" disabled data-i18n="camera.btn.stop">Stop Camera</button>
                     </div>
 
-                    <p id="cameraStatusText" class="camera-status-text">Camera is not started.</p>
+                    <p id="cameraStatusText" class="camera-status-text" data-i18n="camera.status.initial">Camera is not started.</p>
                 </div>
 
                 <div class="photo-upload-grid">
                     <div class="photo-upload-card">
                         <div class="upload-icon">🧭</div>
-                        <h4>North View</h4>
-                        <div id="labelNorth" class="upload-label capture-status">Not Captured</div>
+                        <h4 data-i18n="camera.view.north">North View</h4>
+                        <div id="labelNorth" class="upload-label capture-status" data-i18n="camera.not.captured">Not Captured</div>
                         <div id="previewNorth" class="photo-preview"></div>
                     </div>
 
                     <div class="photo-upload-card">
                         <div class="upload-icon">🧭</div>
-                        <h4>South View</h4>
-                        <div id="labelSouth" class="upload-label capture-status">Not Captured</div>
+                        <h4 data-i18n="camera.view.south">South View</h4>
+                        <div id="labelSouth" class="upload-label capture-status" data-i18n="camera.not.captured">Not Captured</div>
                         <div id="previewSouth" class="photo-preview"></div>
                     </div>
 
                     <div class="photo-upload-card">
                         <div class="upload-icon">🧭</div>
-                        <h4>East View</h4>
-                        <div id="labelEast" class="upload-label capture-status">Not Captured</div>
+                        <h4 data-i18n="camera.view.east">East View</h4>
+                        <div id="labelEast" class="upload-label capture-status" data-i18n="camera.not.captured">Not Captured</div>
                         <div id="previewEast" class="photo-preview"></div>
                     </div>
 
                     <div class="photo-upload-card">
                         <div class="upload-icon">🧭</div>
-                        <h4>West View</h4>
-                        <div id="labelWest" class="upload-label capture-status">Not Captured</div>
+                        <h4 data-i18n="camera.view.west">West View</h4>
+                        <div id="labelWest" class="upload-label capture-status" data-i18n="camera.not.captured">Not Captured</div>
                         <div id="previewWest" class="photo-preview"></div>
                     </div>
 
                     <div class="photo-upload-card floor-card">
                         <div class="upload-icon">📐</div>
-                        <h4>Floor View</h4>
-                        <div id="labelFloor" class="upload-label capture-status">Not Captured</div>
+                        <h4 data-i18n="camera.view.floor">Floor View</h4>
+                        <div id="labelFloor" class="upload-label capture-status" data-i18n="camera.not.captured">Not Captured</div>
                         <div id="previewFloor" class="photo-preview"></div>
                     </div>
                 </div>
 
                 <div class="upload-actions">
-                    <button class="analyze-btn-upload" onclick="analyzeCameraCapture()" id="analyzeCameraBtn" disabled>
+                    <button class="analyze-btn-upload" onclick="analyzeCameraCapture()" id="analyzeCameraBtn" disabled data-i18n="camera.analyze.btn">
                         Analyze Camera Capture
                     </button>
-                    <p class="upload-note">Minimum 3 directions required. Best accuracy with all 5.</p>
+                    <p class="upload-note" data-i18n="camera.note">Minimum 3 directions required. Best accuracy with all 5.</p>
                 </div>
 
                 <div id="cameraResultsSection" class="results-section ei-page" style="display: none; margin-top: 32px;">
                     <div class="ei-shell">
-                        <h2 class="analysis-result-heading">AI Feng Shui Analysis Result</h2>
+                        <h2 class="analysis-result-heading" data-i18n="camera.result.title">AI Feng Shui Analysis Result</h2>
                         <section class="ei-two-column-layout">
                             <div class="ei-left-column">
                                 <div id="cameraMapInsightsPanel" class="card map-insights">
@@ -115,7 +117,7 @@
                                 </aside>
 
                                 <div class="card ai-panel" style="margin-top: 16px;">
-                                    <h3>Five Elements Distribution</h3>
+                                    <h3 data-i18n="camera.elements.title">Five Elements Distribution</h3>
                                     <div class="five-elements-chart-card">
                                         <div class="five-elements-chart-wrap">
                                             <canvas id="cameraElementsRadarChart"></canvas>

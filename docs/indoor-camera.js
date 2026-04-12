@@ -539,8 +539,7 @@ function displayCameraResults(analysis) {
                 <div class="scores-grid">
                     ${scoreEntries.map(([key, value]) => `
                         <div class="score-card">
-                            <span class="value">${Math.round(value)}</span>
-                            <div class="score-indicator" style="background: ${getStatusColorIndoor(value)};"></div>
+                            <span class="value" style="color: ${getStatusColorIndoor(value)};">${Math.round(value)}</span>
                             <span class="label">${formatScoreLabel(key)}</span>
                         </div>
                     `).join('')}
@@ -575,8 +574,7 @@ function displayCameraResults(analysis) {
             <div class="scores-grid element-scores-grid">
                 ${Object.entries(fiveElements).map(([element, value]) => `
                     <div class="score-card">
-                        <span class="value">${Math.round(value)}</span>
-                        <span class="score-indicator" style="background: ${getStatusColorIndoor(value)};"></span>
+                        <span class="value" style="color: ${getStatusColorIndoor(value)};">${Math.round(value)}</span>
                         <span class="label" style="text-transform: capitalize;">${element}</span>
                     </div>
                 `).join('')}

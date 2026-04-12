@@ -3,7 +3,7 @@
 This module provides 100 deterministic room samples for indoor model training.
 """
 
-from typing import Dict, List
+from typing import Dict, List, Union
 
 
 INDOOR_FEATURE_COLUMNS = [
@@ -23,7 +23,7 @@ INDOOR_FEATURE_COLUMNS = [
 ]
 
 
-_ROOM_ARCHETYPES: List[Dict[str, str | float]] = [
+_ROOM_ARCHETYPES: List[Dict[str, Union[str, float]]] = [
     {
         "name": "balanced_bedroom",
         "wood_ratio": 0.24,

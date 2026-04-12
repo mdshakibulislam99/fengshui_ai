@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="homepage-vortex.css">
     <link rel="stylesheet" href="chatbot.css">
     <link rel="stylesheet" href="components/weather.css">
+    <script src="translations.js" defer></script>
+    <script src="language-manager.js" defer></script>
     <script src="header.js" defer></script>
 </head>
 <body>
@@ -24,188 +26,78 @@
     <main>
         <section class="hero-block" id="engines">
             <div class="frame-shell hero-single reveal-up">
-                    <h1>AI Feng Shui Analysis for Healthier, Prosperous Spaces.</h1>
-                    <p class="hero-lead">
-                        QiMatrix combines environmental data, room intelligence, and classical Feng Shui principles
-                        to deliver clear scores and practical recommendations you can apply immediately.
+                    <h1 data-i18n="hero.title">Start With The Feng Shui Analysis You Need Most.</h1>
+                    <p class="hero-lead" data-i18n="hero.subtitle">
+                        Enter QiMatrix and immediately choose between outdoor insights, indoor optimization,
+                        personal destiny reading, or guided Feng Shui learning.
                     </p>
 
-                <div class="hero-ctas" aria-label="Analysis options">
-                    <a href="outdoor-analysis.html" class="btn btn-solid">Analyze Outdoor Area</a>
-                    <a href="indoor-analysis.html" class="btn btn-outline">Analyze Indoor Space</a>
-                    <a href="personal-feng-shui.html" class="btn btn-outline">Personal Analysis</a>
-                    <a href="learn-feng-shui.html" class="btn btn-outline">Learn Feng Shui</a>
-                </div>
-            </div>
-        </section>
+                <div class="feature-launchpad" aria-label="Main feature cards">
 
-        <section class="ai-process" aria-labelledby="ai-process-title">
-            <div class="frame-shell">
-                <header class="ai-process-head">
-                    <p class="chip">How Our AI Works</p>
-                    <h2 id="ai-process-title">A clear four-stage pipeline from raw space data to practical Feng Shui action.</h2>
-                </header>
-
-                <div class="ai-process-grid">
-                    <article class="process-node">
-                        <span class="node-id">01</span>
-                        <h3>Collect Context Data</h3>
-                        <p>We gather location, terrain, water, building density, and room-level details from your inputs.</p>
-                    </article>
-
-                    <article class="process-node">
-                        <span class="node-id">02</span>
-                        <h3>Run Spatial Analysis</h3>
-                        <p>Our AI maps pressure points, support zones, and Qi movement patterns across indoor and outdoor layers.</p>
-                    </article>
-
-                    <article class="process-node">
-                        <span class="node-id">03</span>
-                        <h3>Apply Feng Shui Logic</h3>
-                        <p>The model evaluates Five Elements balance and classical Feng Shui principles against your real environment.</p>
-                    </article>
-
-                    <article class="process-node">
-                        <span class="node-id">04</span>
-                        <h3>Generate Action Plan</h3>
-                        <p>You receive ranked recommendations with clear, easy-to-apply fixes for better harmony and flow.</p>
-                    </article>
-                </div>
-            </div>
-        </section>
-
-        <section class="engine-section" id="outcomes">
-            <div class="frame-shell">
-                <header class="engine-head">
-                    <p class="chip">Analysis Modes</p>
-                    <h2>Choose where your AI Feng Shui analysis should start.</h2>
-                    <p class="engine-sub">Run outdoor and indoor scans separately or combine both for complete space intelligence.</p>
-                </header>
-
-                <div class="engine-grid">
-                    <article class="engine-card outdoors reveal-up">
-                        <span class="engine-badge">Best for property selection</span>
-                        <p class="chip">Outdoor Engine</p>
-                        <h2>Context Field Analysis</h2>
-                        <p>
-                            Evaluate roads, mountains, open sky, vegetation density, and water bodies to reveal whether
-                            a location feeds or depletes your home's energetic base.
-                        </p>
-                        <ul class="engine-points">
-                            <li>Terrain and water influence scoring</li>
-                            <li>External pressure and support mapping</li>
-                            <li>Site-level harmony recommendations</li>
-                        </ul>
-                        <div class="engine-foot">
-                            <a href="outdoor-analysis.html">Analyze Outdoor Area</a>
+                    <!-- Outdoor Analysis -->
+                    <article class="feature-card fc-outdoor reveal-up" onclick="window.location.href='outdoor-analysis.html'">
+                        <div class="fc-visual fc-visual-outdoor">
+                            <div class="fc-badge fc-badge-outdoor">
+                                <svg class="fc-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3 18L8 11L12 14L16 8L21 18H3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                                    <circle cx="17.5" cy="5.5" r="2" stroke="currentColor" stroke-width="1.8"/>
+                                </svg>
+                            </div>
                         </div>
+                        <h3 data-i18n="feature.outdoor.title">Outdoor Analysis</h3>
+                        <p class="fc-desc" data-i18n="feature.outdoor.desc">Analyze terrain, water, and roads to reveal if a location supports your energy.</p>
+                        <a href="outdoor-analysis.html" class="fc-btn fc-btn-outdoor" data-i18n="feature.outdoor.btn">Open Outdoor Analysis</a>
                     </article>
 
-                    <article class="engine-card indoors reveal-up">
-                        <span class="engine-badge">Best for existing homes</span>
-                        <p class="chip">Indoor Engine</p>
-                        <h2>Room Flow Optimization</h2>
-                        <p>
-                            Measure layout friction, light direction, object placement, and element imbalance in each room,
-                            then apply quick corrections for better daily performance.
-                        </p>
-                        <ul class="engine-points">
-                            <li>Room-by-room Qi flow diagnostics</li>
-                            <li>Element balance and placement checks</li>
-                            <li>Actionable furniture and layout fixes</li>
-                        </ul>
-                        <div class="engine-foot">
-                            <a href="indoor-analysis.html">Analyze Indoor Space</a>
+                    <!-- Indoor Analysis -->
+                    <article class="feature-card fc-indoor reveal-up" onclick="window.location.href='indoor-analysis.html'">
+                        <div class="fc-visual fc-visual-indoor">
+                            <div class="fc-badge fc-badge-indoor">
+                                <svg class="fc-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3 10.5L12 3L21 10.5V20C21 20.55 20.55 21 20 21H15V15H9V21H4C3.45 21 3 20.55 3 20V10.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
                         </div>
+                        <h3 data-i18n="feature.indoor.title">Indoor Analysis</h3>
+                        <p class="fc-desc" data-i18n="feature.indoor.desc">Fix room layout, Qi flow, and element balance using design, photos, or camera.</p>
+                        <a href="indoor-analysis.html" class="fc-btn fc-btn-indoor" data-i18n="feature.indoor.btn">Open Indoor Analysis</a>
                     </article>
-                </div>
-            </div>
-        </section>
 
-        <section class="workflow" id="workflow">
-            <div class="frame-shell">
-                <header class="workflow-head">
-                    <p class="chip">How It Works</p>
-                    <h2>From raw context to confident<br>action in three stages.</h2>
-                    <p class="workflow-lead">Each stage reduces uncertainty and increases precision, so your recommendations are specific, ranked, and practical.</p>
-                </header>
+                    <!-- Personal Feng Shui -->
+                    <article class="feature-card fc-personal reveal-up" onclick="window.location.href='personal-feng-shui.html'">
+                        <div class="fc-visual fc-visual-personal">
+                            <div class="fc-badge fc-badge-personal">
+                                <svg class="fc-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="7" r="3" stroke="currentColor" stroke-width="1.8"/>
+                                    <path d="M5 21C5 17.134 8.134 14 12 14C15.866 14 19 17.134 19 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.4" stroke-dasharray="3 3"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 data-i18n="feature.personal.title">Personal Feng Shui</h3>
+                        <p class="fc-desc" data-i18n="feature.personal.desc">Discover your element profile, best directions, and favorable timing from your Bazi chart.</p>
+                        <a href="personal-feng-shui.html" class="fc-btn fc-btn-personal" data-i18n="feature.personal.btn">Open Personal Analysis</a>
+                    </article>
 
-                <div class="workflow-grid">
-                    <article class="step-card reveal-up">
-                        <span>01</span>
-                        <h3>Select Scope</h3>
-                        <p class="step-meta">Choose analysis path</p>
-                        <p>Run outdoor scanning, indoor room analysis, or combine both for full-stack insight.</p>
+                    <!-- Learn Feng Shui -->
+                    <article class="feature-card fc-learn reveal-up" onclick="window.location.href='learn-feng-shui.html'">
+                        <div class="fc-visual fc-visual-learn">
+                            <div class="fc-badge fc-badge-learn">
+                                <svg class="fc-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4 6C4 5.45 4.45 5 5 5H19C19.55 5 20 5.45 20 6V18C20 18.55 19.55 19 19 19H5C4.45 19 4 18.55 4 18V6Z" stroke="currentColor" stroke-width="1.8"/>
+                                    <path d="M4 9H20M9 5V19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 data-i18n="feature.learn.title">Learn Feng Shui</h3>
+                        <p class="fc-desc" data-i18n="feature.learn.desc">Learn Five Elements theory and classical Feng Shui principles through clear, practical lessons.</p>
+                        <a href="learn-feng-shui.html" class="fc-btn fc-btn-learn" data-i18n="feature.learn.btn">Start Learning</a>
                     </article>
-                    <article class="step-card reveal-up">
-                        <span>02</span>
-                        <h3>Feed Context</h3>
-                        <p class="step-meta">Ground the model</p>
-                        <p>Pin location and enter room details so the model reads your real environment, not assumptions.</p>
-                    </article>
-                    <article class="step-card reveal-up">
-                        <span>03</span>
-                        <h3>Execute Plan</h3>
-                        <p class="step-meta">Apply in sequence</p>
-                        <p>Apply ranked interventions in sequence to fix bottlenecks in energy flow first.</p>
-                    </article>
-                </div>
-            </div>
-        </section>
 
-        <section class="proof-section">
-            <div class="frame-shell">
-                <header class="proof-head">
-                    <p class="chip">Why You Can Trust It</p>
-                    <h3>Built on method, reliability, and speed.</h3>
-                </header>
-
-                <div class="proof-grid">
-                    <article>
-                        <p class="proof-kicker">Method</p>
-                        <h3>Data + Tradition</h3>
-                        <p>Classical Feng Shui patterns are tested against real geographic and room context signals.</p>
-                    </article>
-                    <article>
-                        <p class="proof-kicker">Reliability</p>
-                        <h3>Real-World Ready</h3>
-                        <p>Designed for apartments, houses, and offices with practical constraints and realistic fixes.</p>
-                    </article>
-                    <article>
-                        <p class="proof-kicker">Speed</p>
-                        <h3>Fast Improvement</h3>
-                        <p>Most recommendations can be implemented immediately without major renovation cost.</p>
-                    </article>
-                </div>
-            </div>
-        </section>
-
-        <section class="final-cta">
-            <div class="frame-shell final-card reveal-up">
-                <div class="final-copy">
-                    <p class="chip">Start Optimizing</p>
-                    <h2>Ready to optimize your space?</h2>
-                    <p class="final-sub">Choose your analysis path and get ranked, practical recommendations in minutes.</p>
-                </div>
-                <div class="final-actions">
-                    <div class="hero-ctas">
-                        <a href="outdoor-analysis.html" class="btn btn-solid">Run Outdoor Analysis</a>
-                        <a href="indoor-analysis.html" class="btn btn-outline">Run Indoor Analysis</a>
-                    </div>
                 </div>
             </div>
         </section>
     </main>
-
-    <footer class="site-footer">
-        <div class="frame-shell footer-row">
-            <p>2026 QiMatrix. AI Feng Shui for intentional environments.</p>
-            <nav aria-label="Footer links">
-                <a href="learn-feng-shui.html">Learn Feng Shui</a>
-                <a href="login.html">Account</a>
-            </nav>
-        </div>
-    </footer>
     <script src="chatbot.js"></script>
     <script src="components/weatherButton.js?v=20260310w4"></script>
 </body>

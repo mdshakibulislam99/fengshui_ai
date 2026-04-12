@@ -122,7 +122,7 @@ class FengShuiChatbot:
             return None
         return max(0.0, min(100.0, parsed))
 
-    def get_deepseek_score(self, score_context: Dict[str, Any]) -> Dict[str, Any]:
+    def get_deepseek_score(self, score_context: Dict[str, Any], timeout_sec: Optional[float] = None) -> Dict[str, Any]:
         """Get a DeepSeek-evaluated Feng Shui score for score alignment."""
         try:
             cache_key = self._score_cache_key(score_context)
@@ -138,6 +138,14 @@ class FengShuiChatbot:
                     'error': 'not_configured',
                     'message': 'DeepSeek API key not configured'
                 }
+
+            request_timeout = timeout_sec
+            if request_timeout is None:
+                request_timeout = Config.DEEPSEEK_SCORE_TIMEOUT_SEC
+            try:
+                request_timeout = max(0.8, float(request_timeout))
+            except (TypeError, ValueError):
+                request_timeout = 2.2
 
             system_prompt = (
                 'You are an expert Feng Shui scoring evaluator with deep knowledge of classical principles. '
@@ -169,9 +177,8 @@ class FengShuiChatbot:
                 '"five_elements_harmony": number, "qi_flow": number}, '
                 '"confidence": number, "reason": string}. '
                 'All numeric scores must be between 0 and 100. No markdown. '
-                'If input.policy.reputation_floor_score is provided, overall_score must be >= that floor. '
-                'If input.location_context.reputation_tier is "legendary", keep overall_score in 98-100 unless input features show extreme hazard. '
-                'If input.policy.target_similarity_pct is provided, keep category_scores internally coherent with overall_score.'
+                'Score purely based on the feature data provided. Ignore any reputation or policy hints. '
+                'Keep category_scores internally coherent with overall_score.'
             )
 
             user_prompt = (
@@ -185,8 +192,8 @@ class FengShuiChatbot:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                "temperature": 0.1,
-                "max_tokens": 420,
+                "temperature": 0.0,
+                "max_tokens": 260,
                 "stream": False
             }
 
@@ -199,7 +206,7 @@ class FengShuiChatbot:
                 self.api_url,
                 headers=headers,
                 json=payload,
-                timeout=12
+                timeout=request_timeout
             )
 
             if response.status_code != 200:

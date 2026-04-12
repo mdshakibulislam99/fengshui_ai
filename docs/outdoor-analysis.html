@@ -18,6 +18,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="chatbot.css">
     <link rel="stylesheet" href="components/weather.css">
+    <script src="translations.js" defer></script>
+    <script src="language-manager.js" defer></script>
     <script src="header.js" defer></script>
 </head>
 <body>
@@ -28,12 +30,12 @@
             <section class="ei-two-column-layout">
                 <div class="ei-left-column">
                     <div class="ei-hero card">
-                        <h1>Outdoor Feng Shui Urban Analysis</h1>
-                        <p>Analyze urban locations with AI-powered spatial and environmental intelligence.</p>
+                        <h1 data-i18n="outdoor.page.title">Outdoor Feng Shui Urban Analysis</h1>
+                        <p data-i18n="outdoor.page.subtitle">Analyze urban locations with AI-powered spatial and environmental intelligence.</p>
 
                         <div class="controls-grid search-only">
                             <div class="search-box">
-                                <label for="locationInput">Search Location</label>
+                                <label for="locationInput" data-i18n="outdoor.search.label">Search Location</label>
                                 <div class="search-shell">
                                     <form id="locationSearchForm" class="search-input-row" novalidate>
                                         <span class="search-prefix" aria-hidden="true">
@@ -42,8 +44,8 @@
                                                 <circle cx="12" cy="10" r="2.8" fill="white"/>
                                             </svg>
                                         </span>
-                                        <input type="text" id="locationInput" placeholder="Search city, district, or place" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-                                        <button id="searchBtn" type="submit" class="btn-primary"><span aria-hidden="true">🔍</span> Search</button>
+                                        <input type="text" id="locationInput" data-i18n="outdoor.search.placeholder" placeholder="Search city, district, or place" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                                        <button id="searchBtn" type="submit" class="btn-primary"><span aria-hidden="true">🔍</span> <span data-i18n="outdoor.search.btn">Search</span></button>
                                     </form>
                                 </div>
                             </div>
@@ -51,13 +53,13 @@
                             <div id="postSearchSettings" class="post-search-settings">
                                 <div class="selection-radius-row">
                                     <div class="selection-mode-group">
-                                        <button id="locationModeBtn" class="mode-btn active" type="button">Select Location</button>
-                                        <button id="polygonBtn" class="mode-btn" type="button">Draw Area</button>
-                                        <button id="cancelPolygonBtn" class="mode-btn cancel-mode" type="button" style="display: none;">Cancel</button>
+                                        <button id="locationModeBtn" class="mode-btn active" type="button" data-i18n="outdoor.mode.location">Select Location</button>
+                                        <button id="polygonBtn" class="mode-btn" type="button" data-i18n="outdoor.mode.draw">Draw Area</button>
+                                        <button id="cancelPolygonBtn" class="mode-btn cancel-mode" type="button" style="display: none;" data-i18n="outdoor.mode.cancel">Cancel</button>
                                     </div>
 
                                     <div id="radiusControlWrap" class="radius-control">
-                                        <label for="radius">Analysis Radius: <span id="radiusValue">500</span> m</label>
+                                        <label for="radius"><span data-i18n="outdoor.radius.label">Analysis Radius:</span> <span id="radiusValue">500</span> m</label>
                                         <input type="range" id="radius" value="500" min="100" max="5000" step="100" class="radius-slider">
                                     </div>
                                 </div>
@@ -71,14 +73,14 @@
                                             </svg>
                                         </span>
                                         <span class="location-text-block">
-                                            <span class="location-name">Select location</span>
+                                            <span class="location-name" data-i18n="outdoor.location.default">Select location</span>
                                             <span class="location-coords">( -- , -- )</span>
                                         </span>
                                     </div>
                                 </div>
 
                                 <div class="analyze-action-row">
-                                    <button id="analyzeBtn" class="btn-primary" disabled>Analyze Location</button>
+                                    <button id="analyzeBtn" class="btn-primary" disabled data-i18n="outdoor.analyze.btn">Analyze Location</button>
                                 </div>
                             </div>
                         </div>
@@ -89,8 +91,8 @@
                             <div id="map-container"></div>
                         </div>
                         <div id="mapInsightsPanel" class="card map-insights hidden-state">
-                            <h3>Feng Shui AI Insights</h3>
-                            <p>Run an analysis to see six structured factors and a focused improvement plan.</p>
+                            <h3 data-i18n="outdoor.insights.title">Feng Shui AI Insights</h3>
+                            <p data-i18n="outdoor.insights.desc">Run an analysis to see six structured factors and a focused improvement plan.</p>
                         </div>
                     </div>
                 </div>
@@ -98,9 +100,9 @@
                 <aside class="ei-right-column">
                     <aside class="summary-column">
                         <details class="summary-details" open>
-                            <summary>Analysis Summary</summary>
+                            <summary data-i18n="outdoor.summary.label">Analysis Summary</summary>
                             <div id="summaryCard" class="card summary-card">
-                                <h2>Your Analysis</h2>
+                                <h2 data-i18n="outdoor.summary.heading">Your Analysis</h2>
                                 <div class="summary-placeholder">
                                     <div class="pre-analysis-icon">
                                         <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -113,12 +115,12 @@
                                             <line x1="41" y1="28" x2="51" y2="28" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
                                         </svg>
                                     </div>
-                                    <h3 class="pre-analysis-title">Ready to analyze</h3>
-                                    <p class="pre-analysis-desc">Select a location or draw an area to unlock your Feng Shui score insights.</p>
+                                    <h3 class="pre-analysis-title" data-i18n="outdoor.ready.title">Ready to analyze</h3>
+                                    <p class="pre-analysis-desc" data-i18n="outdoor.ready.desc">Select a location or draw an area to unlock your Feng Shui score insights.</p>
                                     <div class="summary-empty-steps">
-                                        <span class="step-pill">1. Select</span>
-                                        <span class="step-pill">2. Analyze</span>
-                                        <span class="step-pill">3. Improve</span>
+                                        <span class="step-pill" data-i18n="outdoor.step1">1. Select</span>
+                                        <span class="step-pill" data-i18n="outdoor.step2">2. Analyze</span>
+                                        <span class="step-pill" data-i18n="outdoor.step3">3. Improve</span>
                                     </div>
                                 </div>
                             </div>
@@ -128,15 +130,15 @@
                     <aside class="analysis-column">
                         <div id="dashboard" class="dashboard-stack hidden-state">
                             <div class="card placeholder-card">
-                                <h3>Environmental Analysis Dashboard</h3>
-                                <p>Use search or click the map to select a location. The dashboard will show numeric score breakdowns, missing factors, and actionable improvements.</p>
+                                <h3 data-i18n="outdoor.dashboard.title">Environmental Analysis Dashboard</h3>
+                                <p data-i18n="outdoor.dashboard.desc">Use search or click the map to select a location. The dashboard will show numeric score breakdowns, missing factors, and actionable improvements.</p>
                             </div>
                         </div>
                     </aside>
 
                     <div id="aiPanelMount" class="card ai-panel hidden-state">
-                        <h3>AI Interpretation Panel</h3>
-                        <p>Run an analysis to view structured interpretation and improvement actions.</p>
+                        <h3 data-i18n="outdoor.ai.title">AI Interpretation Panel</h3>
+                        <p data-i18n="outdoor.ai.desc">Run an analysis to view structured interpretation and improvement actions.</p>
                     </div>
                 </aside>
             </section>
@@ -201,7 +203,7 @@
     </script>
 
     <script src="outdoor-ui.js?v=20260307h"></script>
-    <script src="app.js?v=20260330ds2"></script>
+    <script src="app.js?v=20260412fix3"></script>
     <script src="chatbot.js?v=20260310fix2"></script>
     <script src="components/weatherButton.js?v=20260310w4"></script>
 </body>

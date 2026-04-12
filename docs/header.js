@@ -38,17 +38,17 @@
         + '</a>'
 
         + '<nav class="hdr-nav" aria-label="Primary">'
-        + '<a href="' + href('index.html') + '" class="' + active('index.html').trim() + '">Home</a>'
-        + '<a href="' + href('outdoor-analysis.html') + '" class="' + active('outdoor-analysis.html').trim() + '">Outdoor Analysis</a>'
-        + '<a href="' + href('indoor-analysis.html') + '" class="' + indoorActive().trim() + '">Indoor Analysis</a>'
-        + '<a href="' + href('personal-feng-shui.html') + '" class="' + active('personal-feng-shui.html').trim() + '">Personal</a>'
-        + '<a href="' + href('weather.html') + '" class="' + active('weather.html').trim() + '">Weather</a>'
-        + '<a href="' + href('learn-feng-shui.html') + '" class="' + active('learn-feng-shui.html').trim() + '">Learn</a>'
+        + '<a href="' + href('index.html') + '" class="' + active('index.html').trim() + '" data-i18n="nav.home">Home</a>'
+        + '<a href="' + href('outdoor-analysis.html') + '" class="' + active('outdoor-analysis.html').trim() + '" data-i18n="nav.outdoor">Outdoor Analysis</a>'
+        + '<a href="' + href('indoor-analysis.html') + '" class="' + indoorActive().trim() + '" data-i18n="nav.indoor">Indoor Analysis</a>'
+        + '<a href="' + href('personal-feng-shui.html') + '" class="' + active('personal-feng-shui.html').trim() + '" data-i18n="nav.personal">Personal</a>'
+        + '<a href="' + href('weather.html') + '" class="' + active('weather.html').trim() + '" data-i18n="nav.weather">Weather</a>'
+        + '<a href="' + href('learn-feng-shui.html') + '" class="' + active('learn-feng-shui.html').trim() + '" data-i18n="nav.learn">Learn</a>'
         + '</nav>'
 
         + '<div class="nav-ctas">'
-        + '<a href="' + href('login.html') + '" class="hdr-btn hdr-btn-ghost">Login</a>'
-        + '<a href="' + href('outdoor-analysis.html') + '" class="hdr-btn hdr-btn-solid">Start Analysis</a>'
+        + '<button class="hdr-lang-toggle" aria-label="Toggle language" title="切换语言 / Switch Language"></button>'
+        + '<a href="' + href('outdoor-analysis.html') + '" class="hdr-btn hdr-btn-solid" data-i18n="nav.startAnalysis">Start Analysis</a>'
         + '</div>'
 
         + '<button class="hdr-toggle" aria-label="Toggle menu" aria-expanded="false">'
@@ -58,28 +58,52 @@
         + '</div>'
 
         + '<nav class="hdr-mobile-nav" aria-label="Mobile navigation">'
-        + '<a href="' + href('index.html') + '">Home</a>'
-        + '<a href="' + href('outdoor-analysis.html') + '">Outdoor Analysis</a>'
-        + '<a href="' + href('indoor-analysis.html') + '">Indoor Analysis</a>'
-        + '<a href="' + href('personal-feng-shui.html') + '">Personal</a>'
-        + '<a href="' + href('weather.html') + '">Weather</a>'
-        + '<a href="' + href('learn-feng-shui.html') + '">Learn</a>'
+        + '<a href="' + href('index.html') + '" data-i18n="nav.home">Home</a>'
+        + '<a href="' + href('outdoor-analysis.html') + '" data-i18n="nav.outdoor">Outdoor Analysis</a>'
+        + '<a href="' + href('indoor-analysis.html') + '" data-i18n="nav.indoor">Indoor Analysis</a>'
+        + '<a href="' + href('personal-feng-shui.html') + '" data-i18n="nav.personal">Personal</a>'
+        + '<a href="' + href('weather.html') + '" data-i18n="nav.weather">Weather</a>'
+        + '<a href="' + href('learn-feng-shui.html') + '" data-i18n="nav.learn">Learn</a>'
+        + '<button class="hdr-lang-toggle-mobile" aria-label="Toggle language" title="切换语言 / Switch Language"></button>'
         + '<div class="hdr-mobile-ctas">'
-        + '<a href="' + href('login.html') + '" class="hdr-btn hdr-btn-ghost">Login</a>'
-        + '<a href="' + href('outdoor-analysis.html') + '" class="hdr-btn hdr-btn-solid">Start Analysis</a>'
+        + '<a href="' + href('outdoor-analysis.html') + '" class="hdr-btn hdr-btn-solid" data-i18n="nav.startAnalysis">Start Analysis</a>'
         + '</div>'
         + '</nav>'
 
         + '</header>';
 
+    function applyLangToHeader() {
+        if (typeof QiLang === 'undefined') return;
+        // Translate all data-i18n elements inside the header
+        document.querySelectorAll('.top-frame [data-i18n], .hdr-mobile-nav [data-i18n]').forEach(function(el) {
+            var key = el.getAttribute('data-i18n');
+            var translated = QiLang.get(key);
+            if (translated && translated !== key) {
+                el.textContent = translated;
+            }
+        });
+        // Update language toggle button to show the OPPOSITE language
+        var btnText = QiLang.currentLang === 'en' ? '中文' : 'EN';
+        var langToggle = document.querySelector('.hdr-lang-toggle');
+        var langToggleMobile = document.querySelector('.hdr-lang-toggle-mobile');
+        if (langToggle) langToggle.textContent = btnText;
+        if (langToggleMobile) langToggleMobile.textContent = btnText;
+    }
+
     function init() {
         // Prevent duplicate headers when script is loaded twice or when
         // a page still contains a legacy header implementation.
         if (document.querySelector('.top-frame') || document.querySelector('.main-header')) {
+            // Header already exists — still apply lang and wire up toggle
+            applyLangToHeader();
+            wireToggle();
             return;
         }
 
         document.body.insertAdjacentHTML('afterbegin', html);
+
+        // Apply saved language to the freshly-injected header immediately
+        applyLangToHeader();
 
         var toggle = document.querySelector('.hdr-toggle');
         var mobileNav = document.querySelector('.hdr-mobile-nav');
@@ -98,6 +122,34 @@
                 toggle.setAttribute('aria-expanded', 'false');
                 mobileNav.classList.remove('open');
             });
+        });
+
+        wireToggle();
+    }
+
+    function wireToggle() {
+        var langToggle = document.querySelector('.hdr-lang-toggle');
+        var langToggleMobile = document.querySelector('.hdr-lang-toggle-mobile');
+
+        if (langToggle && !langToggle.__qiLangBound) {
+            langToggle.__qiLangBound = true;
+            langToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (typeof QiLang !== 'undefined') QiLang.toggle();
+            });
+        }
+
+        if (langToggleMobile && !langToggleMobile.__qiLangBound) {
+            langToggleMobile.__qiLangBound = true;
+            langToggleMobile.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (typeof QiLang !== 'undefined') QiLang.toggle();
+            });
+        }
+
+        // Re-translate header whenever language changes
+        window.addEventListener('qilang:changed', function() {
+            applyLangToHeader();
         });
     }
 

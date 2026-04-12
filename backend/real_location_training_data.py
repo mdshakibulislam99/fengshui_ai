@@ -53,6 +53,24 @@ ARCHETYPE_FEATURE_CENTERS: Dict[str, Dict[str, float]] = {
         "environmental_quality": 0.66,
         "spiritual_presence": 0.67,
     },
+    "university_campus": {
+        "green_area_ratio": 0.75,         # Abundant parks, sports fields, green spaces
+        "water_proximity": 0.65,          # Good water features (lakes, ponds, fountains)
+        "building_density": 0.60,         # Moderate building density for balanced flow
+        "road_intersection_density": 0.55, # Decent pathways for Qi circulation
+        "orientation_score": 0.82,        # Excellent orientation for education feng shui
+        "environmental_quality": 0.80,    # Very good air quality, clean environment
+        "spiritual_presence": 0.45,       # Moderate spiritual presence (libraries, meditation areas)
+    },
+    "temple_sacred": {
+        "green_area_ratio": 0.78,         # Abundant temple gardens, compounds
+        "water_proximity": 0.85,          # Often strategically placed on rivers/lakes
+        "building_density": 0.50,         # Main building + surrounding structures
+        "road_intersection_density": 0.40, # Accessible paths despite remote location
+        "orientation_score": 0.92,        # Carefully designed auspicious orientation
+        "environmental_quality": 0.85,    # Pristine, well-maintained environment
+        "spiritual_presence": 0.98,       # Extremely high spiritual energy
+    },
 }
 
 
@@ -257,4 +275,29 @@ REAL_LOCATION_FENG_SHUI_SEEDS: List[Dict[str, object]] = [
     {"name": "Novosibirsk", "latitude": 55.0084, "longitude": 82.9357, "archetype": "balanced_urban"},
     {"name": "Saint Petersburg", "latitude": 59.9311, "longitude": 30.3609, "archetype": "waterfront"},
     {"name": "Canberra", "latitude": -35.2809, "longitude": 149.1300, "archetype": "balanced_urban"},
+    # University Campuses (NEW - added for better campus recognition)
+    {"name": "NJUPT Nanjing", "latitude": 32.1135, "longitude": 118.9309, "archetype": "university_campus"},
+    {"name": "Tsinghua University Beijing", "latitude": 40.0080, "longitude": 116.3275, "archetype": "university_campus"},
+    {"name": "Peking University Beijing", "latitude": 39.9967, "longitude": 116.3126, "archetype": "university_campus"},
+    {"name": "Fudan University Shanghai", "latitude": 31.2982, "longitude": 121.5039, "archetype": "university_campus"},
+    {"name": "Shanghai Jiao Tong University", "latitude": 31.0277, "longitude": 121.4255, "archetype": "university_campus"},
+    {"name": "Zhejiang University Hangzhou", "latitude": 30.2752, "longitude": 120.1551, "archetype": "university_campus"},
+    {"name": "Xiamen University", "latitude": 24.4275, "longitude": 118.0894, "archetype": "university_campus"},
+    {"name": "Wuhan University", "latitude": 30.5493, "longitude": 114.3055, "archetype": "university_campus"},
+    {"name": "Nanjing University", "latitude": 32.1050, "longitude": 118.8849, "archetype": "university_campus"},
+    {"name": "Sun Yat-sen University Guangzhou", "latitude": 23.1342, "longitude": 113.2644, "archetype": "university_campus"},
+    {"name": "Sichuan University Chengdu", "latitude": 30.5728, "longitude": 104.0668, "archetype": "university_campus"},
+    {"name": "Tokyo University", "latitude": 35.6762, "longitude": 139.7614, "archetype": "university_campus"},
+    {"name": "Stanford University", "latitude": 37.4275, "longitude": -122.1697, "archetype": "university_campus"},
+    {"name": "Cambridge University", "latitude": 52.2041, "longitude": 0.1130, "archetype": "university_campus"},
+    # Temple / Sacred Sites (NEW - added for better temple recognition)
+    {"name": "Bodhidharma Temple Shaolin Henan", "latitude": 34.4770, "longitude": 112.9453, "archetype": "temple_sacred"},
+    {"name": "Kiyomizu Temple Kyoto", "latitude": 34.9956, "longitude": 135.7880, "archetype": "temple_sacred"},
+    {"name": "Temple of Heaven Beijing", "latitude": 39.8826, "longitude": 116.4074, "archetype": "temple_sacred"},
+    {"name": "Lingyin Temple Hangzhou", "latitude": 30.2408, "longitude": 120.0927, "archetype": "temple_sacred"},
+    {"name": "White Cloud Temple Beijing", "latitude": 39.9331, "longitude": 116.3889, "archetype": "temple_sacred"},
+    {"name": "Jing'an Temple Shanghai", "latitude": 31.2304, "longitude": 121.4607, "archetype": "temple_sacred"},
+    {"name": "Grand Buddha Nanjing", "latitude": 32.0603, "longitude": 118.8049, "archetype": "temple_sacred"},
+    {"name": "Angkor Wat Cambodia", "latitude": 13.3667, "longitude": 103.8333, "archetype": "temple_sacred"},
+    {"name": "Taj Mahal Agra", "latitude": 27.1751, "longitude": 78.0421, "archetype": "temple_sacred"},
 ]

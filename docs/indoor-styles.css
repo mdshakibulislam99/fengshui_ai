@@ -7,11 +7,11 @@
 }
 
 :root {
-    --primary-color: #0f8a60;
-    --primary-hover: #0b6a49;
+    --primary-color: #dc2626;
+    --primary-hover: #b91c1c;
     --accent-color: #ef6f37;
     --accent-hover: #cf5623;
-    --success-color: #10b981;
+    --success-color: #dc2626;
     --warning-color: #f59e0b;
     --danger-color: #ef4444;
     --text-dark: #14251f;
@@ -133,7 +133,7 @@ body.indoor-landing {
 }
 
 .mode-features li:before {
-    content: "\2713";
+    content: "\2022";
     color: var(--success-color);
     font-weight: bold;
     position: absolute;
@@ -740,18 +740,19 @@ body.indoor-landing {
 .save-btn:hover {
     background: var(--primary-hover);
     transform: translateY(-2px);
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
 }
 
 .history-btn {
-    background: #194f3c;
+    background: #00a99d;
     color: white;
+    border: none;
 }
 
 .history-btn:hover {
-    background: #123b2d;
+    background: #008f85;
     transform: translateY(-2px);
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    box-shadow: 0 4px 12px rgba(0, 169, 157, 0.25);
 }
 
 .design-workspace {
@@ -988,18 +989,20 @@ body.indoor-landing {
 }
 
 .clear-btn {
-    padding: 8px 16px;
-    background: #ef4444;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background 0.3s ease;
+    padding: 8px 16px !important;
+    background: #f97316 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    font-size: 14px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
 }
 
 .clear-btn:hover {
-    background: #dc2626;
+    background: #ea580c !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4) !important;
 }
 
 .canvas-guide {
@@ -1638,7 +1641,7 @@ body.indoor-camera-page #cameraResultsSection {
     border-radius: 16px;
     margin-bottom: 32px;
     color: white;
-    box-shadow: 0 10px 30px rgba(0, 169, 157, 0.3);
+    box-shadow: 0 10px 30px rgba(220, 38, 38, 0.3);
 }
 
 .main-score h3 {
@@ -1962,11 +1965,87 @@ body.indoor-camera-page #cameraResultsSection {
 }
 
 .control-btn.delete-btn {
-    background: var(--danger-color);
+    background: #f97316 !important;
+    color: white !important;
+    border: none !important;
 }
 
 .control-btn.delete-btn:hover {
+    background: #ea580c !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4) !important;
+}
+
+/* Semantic button system to match outdoor analysis */
+.btn-primary {
+    padding: 10px 16px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+    padding: 10px 16px;
+    background: #fff;
+    color: var(--primary-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background: var(--bg-light);
+    border-color: var(--primary-color);
+}
+
+.btn-danger {
+    padding: 10px 16px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-danger:hover {
     background: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+.btn-nav {
+    padding: 10px 16px;
+    background: #00a99d;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-nav:hover {
+    background: #008f85;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 169, 157, 0.25);
 }
 
 .help-text {
@@ -2193,15 +2272,19 @@ body.indoor-camera-page #cameraResultsSection {
 
 .design-action-btn.load:hover {
     background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
 }
 
 .design-action-btn.delete {
-    background: var(--danger-color);
-    color: white;
+    background: #f97316 !important;
+    color: white !important;
 }
 
 .design-action-btn.delete:hover {
-    background: #dc2626;
+    background: #ea580c !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4) !important;
 }
 
 .empty-designs {
@@ -2755,7 +2838,7 @@ body.indoor-landing .mode-features li {
 }
 
 body.indoor-landing .mode-features li::before {
-    content: "\2713";
+    content: "\2022";
     position: absolute;
     left: 0;
     top: 1px;

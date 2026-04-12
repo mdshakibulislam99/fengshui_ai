@@ -1,6 +1,7 @@
 # Module for extracting relevant features from map data for Feng Shui analysis
 
 import logging
+import threading
 from typing import Dict, List, Optional, Tuple
 import math
 import statistics
@@ -23,7 +24,8 @@ def extract_features(poi_data: Dict[str, List[Dict]],
                     hydrosheds_service=None,
                     buildings_service=None,
                     wind_service=None,
-                    flood_service=None) -> Dict:
+                    flood_service=None,
+                    ndvi_service=None) -> Dict:
     """
     Extract comprehensive Feng Shui-relevant features from real AMap data.
     
@@ -138,18 +140,18 @@ def extract_features(poi_data: Dict[str, List[Dict]],
         
         # Features 8-12: external services
         #
-        # Parallelism strategy (safe, no regression risk):
-        #   • Buildings = AMap HTTP → completely separate API from GEE, zero contention
-        #   • Group 1: DEM (GEE) + HydroSHEDS (GEE) + Buildings (AMap) run together
-        #   • Group 2: Wind (GEE) + Flood (GEE) run together after Group 1
-        #   This keeps at most 2 concurrent GEE calls, avoiding the thread-pool
-        #   deadlock that caused the 2-minute regression with 5 simultaneous GEE calls.
+        # Parallelism strategy: all 5 services start immediately in one pool.
+        # A per-request semaphore limits concurrent GEE calls to 3 at a time,
+        # preventing the thread-pool deadlock that occurred with 5 simultaneous
+        # GEE calls. Non-GEE services (Buildings via AMap) bypass the semaphore.
+        _gee_sem = threading.Semaphore(3)
 
         def _fetch_dem():
             if dem_service is None:
                 return {}
             try:
-                r = dem_service.get_topography_score(longitude, latitude, radius)
+                with _gee_sem:
+                    r = dem_service.get_topography_score(longitude, latitude, radius)
                 return {'dem': r}
             except Exception as exc:
                 logger.warning(f"⚠ DEM error: {exc}")
@@ -159,7 +161,8 @@ def extract_features(poi_data: Dict[str, List[Dict]],
             if hydrosheds_service is None:
                 return {}
             try:
-                r = hydrosheds_service.get_river_proximity_score(longitude, latitude, radius)
+                with _gee_sem:
+                    r = hydrosheds_service.get_river_proximity_score(longitude, latitude, radius)
                 return {'hydrosheds': r}
             except Exception as exc:
                 logger.warning(f"⚠ HydroSHEDS error: {exc}")
@@ -179,7 +182,8 @@ def extract_features(poi_data: Dict[str, List[Dict]],
             if wind_service is None:
                 return {}
             try:
-                r = wind_service.get_wind_analysis(longitude, latitude, radius)
+                with _gee_sem:
+                    r = wind_service.get_cached_wind_analysis(longitude, latitude, radius)
                 return {'wind': r}
             except Exception as exc:
                 logger.warning(f"⚠ Wind error: {exc}")
@@ -189,46 +193,99 @@ def extract_features(poi_data: Dict[str, List[Dict]],
             if flood_service is None:
                 return {}
             try:
-                r = flood_service.get_flood_risk_analysis(longitude, latitude, radius)
+                with _gee_sem:
+                    r = flood_service.get_flood_risk_analysis(longitude, latitude, radius)
                 return {'flood': r}
             except Exception as exc:
                 logger.warning(f"⚠ Flood error: {exc}")
                 return {}
 
-        # Group 1: DEM + HydroSHEDS (GEE) alongside Buildings (AMap HTTP)
-        g1 = {}
-        with ThreadPoolExecutor(max_workers=3) as pool:
+        def _fetch_ndvi():
+            if ndvi_service is None:
+                return {}
+            try:
+                # NDVI uses GEE (Sentinel-2) with MODIS free fallback — throttle with _gee_sem
+                with _gee_sem:
+                    r = ndvi_service.get_ndvi(longitude, latitude, radius_m=radius)
+                return {'ndvi': r}
+            except Exception as exc:
+                logger.warning(f"⚠ NDVI error: {exc}")
+                return {}
+
+        # All 6 services run in a single pool. GEE-backed services are throttled
+        # to 3 concurrent calls by _gee_sem; Buildings (AMap HTTP) runs freely.
+        all_results = {}
+        with ThreadPoolExecutor(max_workers=6) as pool:
             futs = {
                 pool.submit(_fetch_dem):        'dem',
                 pool.submit(_fetch_hydrosheds): 'hydrosheds',
                 pool.submit(_fetch_buildings):  'buildings',
+                pool.submit(_fetch_wind):       'wind',
+                pool.submit(_fetch_flood):      'flood',
+                pool.submit(_fetch_ndvi):       'ndvi',
             }
             for fut in as_completed(futs):
-                g1.update(fut.result())
-
-        # Group 2: Wind + Flood (both GEE, after Group 1 to limit GEE concurrency)
-        g2 = {}
-        with ThreadPoolExecutor(max_workers=2) as pool:
-            futs = {
-                pool.submit(_fetch_wind):  'wind',
-                pool.submit(_fetch_flood): 'flood',
-            }
-            for fut in as_completed(futs):
-                g2.update(fut.result())
+                all_results.update(fut.result())
 
         # --- Apply DEM ---
-        topography = g1.get('dem')
+        topography = all_results.get('dem')
         if topography and topography.get('success'):
             features['topography_score'] = topography['topography_score'] / 100.0
             features['elevation_m'] = topography['terrain_metrics'].get('elevation_m')
             features['slope_degrees'] = topography['terrain_metrics'].get('slope_degrees')
             features['aspect_degrees'] = topography['terrain_metrics'].get('aspect_degrees')
             logger.info(f"✓ DEM features extracted: elevation={features['elevation_m']:.1f}m, slope={features['slope_degrees']:.1f}°, aspect={features['aspect_degrees']:.1f}°")
+            
+            # Enhance orientation with terrain aspect from DEM
+            # Terrain aspect indicates which direction the slope faces — 
+            # south-facing slopes are preferred in feng shui (warmth, light)
+            aspect = features.get('aspect_degrees')
+            slope = features.get('slope_degrees', 0)
+            if aspect is not None and slope is not None and slope > 15.0:
+                # Only use terrain aspect on clearly sloped terrain (>15°)
+                # where hill/mountain facing genuinely affects feng shui orientation.
+                # Moderate slopes (<15°) are terrain noise in urban/campus areas.
+                terrain_orientation = score_orientation(aspect)
+                building_orientation = features['orientation_score']
+                slope_weight = min((slope - 15.0) / 30.0, 0.4)
+                if slope < 25.0 and terrain_orientation < building_orientation:
+                    # Dampen negative terrain signal for borderline slopes
+                    slope_weight *= 0.3
+                features['orientation_score'] = (
+                    building_orientation * (1 - slope_weight) + terrain_orientation * slope_weight
+                )
+                logger.info(f"  Orientation enhanced with DEM aspect: "
+                            f"buildings={building_orientation:.3f}, terrain={terrain_orientation:.3f} "
+                            f"(slope={slope:.1f}°, weight={slope_weight:.2f}) → {features['orientation_score']:.3f}")
         else:
             logger.warning("⚠ DEM query failed or skipped")
             features['topography_score'] = 0.5
 
-        # Qi Flow (local, no I/O — computed after DEM so building_density is set)
+        # --- Apply NDVI (satellite vegetation — overrides AMap POI green score) ---
+        ndvi_result = all_results.get('ndvi')
+        if ndvi_result and ndvi_result.get('success'):
+            satellite_coverage = ndvi_result.get('vegetation_coverage', None)
+            ndvi_value = ndvi_result.get('ndvi_value', None)
+            if satellite_coverage is not None and ndvi_value is not None:
+                # Satellite sees everything: parks, fields, gardens, street trees, ponds (NDVI < 0 = water)
+                # Blend: 60% satellite truth, 40% AMap POI (AMap knows named parks precisely)
+                amap_green = features['green_area_ratio']
+                blended_green = amap_green * 0.40 + float(satellite_coverage) * 0.60
+                features['green_area_ratio'] = max(amap_green, blended_green)  # never punish amap signal
+                features['ndvi_value'] = float(ndvi_value)
+                features['ndvi_vegetation_coverage'] = float(satellite_coverage)
+                features['ndvi_source'] = ndvi_result.get('source', 'satellite')
+                logger.info(
+                    f"✓ NDVI satellite green override: AMap={amap_green:.3f} + "
+                    f"Satellite={satellite_coverage:.3f} → blended={features['green_area_ratio']:.3f} "
+                    f"(source: {ndvi_result.get('source', '?')})"
+                )
+        else:
+            logger.warning("⚠ NDVI unavailable — using AMap-only green score")
+            features['ndvi_value'] = None
+            features['ndvi_vegetation_coverage'] = None
+
+        # Qi Flow (local, no I/O — computed after NDVI+DEM so green and density are final)
         features['qi_flow'] = calculate_qi_flow_score(
             road_data,
             features['building_density'],
@@ -236,7 +293,7 @@ def extract_features(poi_data: Dict[str, List[Dict]],
         )
 
         # --- Apply HydroSHEDS ---
-        river_result = g1.get('hydrosheds')
+        river_result = all_results.get('hydrosheds')
         if river_result and river_result.get('success'):
             features['hydrosheds_river_proximity'] = river_result['combined_score'] / 100.0
             features['hydrosheds_river_density'] = river_result['river_density_score'] / 100.0
@@ -247,7 +304,7 @@ def extract_features(poi_data: Dict[str, List[Dict]],
             features['hydrosheds_river_density'] = 0.0
 
         # --- Apply Buildings ---
-        building_result = g1.get('buildings')
+        building_result = all_results.get('buildings')
         if building_result and building_result.get('success'):
             metrics = building_result['metrics']
             harmony_score = buildings_service.calculate_building_harmony_score(metrics)
@@ -266,7 +323,7 @@ def extract_features(poi_data: Dict[str, List[Dict]],
             features['total_buildings_nearby'] = 0.0
 
         # --- Apply Wind ---
-        wind_result = g2.get('wind')
+        wind_result = all_results.get('wind')
         if wind_result and wind_result.get('success'):
             metrics = wind_result['wind_metrics']
             scores = wind_result['feng_shui_scores']
@@ -285,7 +342,7 @@ def extract_features(poi_data: Dict[str, List[Dict]],
             features['wind_dominant_direction'] = 0.5
 
         # --- Apply Flood ---
-        flood_result = g2.get('flood')
+        flood_result = all_results.get('flood')
         if flood_result and flood_result.get('success'):
             flood_scores  = flood_result['flood_scores']
             flood_metrics = flood_result['flood_metrics']
@@ -568,22 +625,16 @@ def estimate_orientation_score(buildings: List[Dict],
                                center_lon: float,
                                center_lat: float) -> float:
     """
-    Calculate average building orientation score based on Feng Shui principles.
+    Estimate site orientation quality for Feng Shui analysis.
     
-    Feng Shui Orientation Hierarchy (Northern Hemisphere):
-    1. South (135-225°): Best - captures most sunlight, warm energy
-    2. Southeast (90-135°): Good - morning sun, growth energy
-    3. Southwest (225-270°): Good - afternoon warmth
-    4. East (45-90°): Moderate - morning light
-    5. West (270-315°): Moderate - afternoon sun, can be harsh
-    6. North (315-45°): Less favorable - cold, less light
-    7. Northeast/Northwest: Variable - depends on specific location
+    Since AMap POI data only provides building locations (not facing direction),
+    we combine:
+    1. Cultural/latitude prior — In Northern Hemisphere (especially East Asia),
+       buildings face south (坐北朝南). This is the dominant signal.
+    2. Site layout quality (四象 analysis) — Good feng shui layout has buildings
+       behind (靠山 backing/north) and open space in front (明堂/south).
     
-    Algorithm:
-    - Calculate bearing from center point to each building
-    - Treat bearing as approximate building orientation
-    - Score each orientation based on Feng Shui principles
-    - Return weighted average (closer buildings weighted more)
+    DEM terrain aspect is blended in separately after this function.
     
     Args:
         buildings: List of building POIs from AMap with coordinates
@@ -591,60 +642,116 @@ def estimate_orientation_score(buildings: List[Dict],
         center_lat: Center point latitude
     
     Returns:
-        Orientation score (0-1), where 1 = optimal south-facing average
+        Orientation score (0-1), where 1 = optimal south-facing site
     """
-    if not buildings:
-        logger.info("Orientation score: 0.500 (no buildings found, neutral score)")
-        return 0.5  # Neutral score when no data
+    latitude = center_lat
+    longitude = center_lon
     
-    orientations = []
-    distances = []
+    # --- Step 1: Cultural/latitude base score ---
+    # In Northern Hemisphere, south-facing is ideal (max sunlight, warmth)
+    # East Asia (China, Japan, Korea) has the strongest 坐北朝南 tradition
+    if latitude > 0:
+        # Northern Hemisphere — south-facing preferred
+        is_east_asia = (18 <= latitude <= 54 and 73 <= longitude <= 146)
+        if is_east_asia:
+            cultural_base = 0.85  # Strong 坐北朝南 tradition in planned areas
+        elif 20 <= latitude <= 50:
+            cultural_base = 0.75  # Mid-latitudes, sunlight-oriented design
+        else:
+            cultural_base = 0.65  # High/low latitudes, less directional preference
+    else:
+        # Southern Hemisphere — north-facing preferred (same sun logic)
+        cultural_base = 0.75
+    
+    if not buildings:
+        # No buildings could mean undeveloped area OR API data gap (rate limit)
+        # In developed regions, assume standard orientation still applies
+        score = cultural_base * 0.95
+        logger.info(f"Orientation score: {score:.3f} (no buildings, "
+                    f"cultural base={cultural_base:.2f} for lat={latitude:.1f}°)")
+        return score
+    
+    # --- Step 2: Site layout quality (四象 analysis) ---
+    # Count buildings in each quadrant relative to center
+    # Good feng shui: 靠山 (backing from north), 明堂 (open south),
+    #   青龙 (east support), 白虎 (west balance)
+    north_weight = 0.0   # 靠山 (backing/sitting)
+    south_weight = 0.0   # 明堂 (bright hall/facing)
+    east_weight = 0.0    # 青龙 (azure dragon)
+    west_weight = 0.0    # 白虎 (white tiger)
+    valid_count = 0
     
     for building in buildings:
         building_lon = building.get('longitude')
         building_lat = building.get('latitude')
-        distance = building.get('distance', 1000)
+        distance = building.get('distance', 500)
         
         if building_lon is None or building_lat is None:
             continue
         
-        # Calculate bearing from center to building (proxy for orientation)
+        # Calculate bearing from center to building
         angle = estimate_building_orientation(
-            building_lon,
-            building_lat,
-            center_lon,
-            center_lat
+            building_lon, building_lat, center_lon, center_lat
         )
+        if angle is None:
+            continue
         
-        if angle is not None:
-            orientations.append(angle)
-            distances.append(distance)
-    
-    if not orientations:
-        logger.info("Orientation score: 0.500 (no valid building orientations)")
-        return 0.5
-    
-    # Calculate weighted average orientation score
-    # Closer buildings have more influence on the score
-    total_weight = 0
-    weighted_score_sum = 0
-    
-    for angle, distance in zip(orientations, distances):
-        # Distance weight: closer buildings count more
-        weight = 1 / (1 + distance / 100)  # Exponential decay
-        orientation_score = score_orientation(angle)
+        valid_count += 1
+        # Closer buildings have stronger influence
+        proximity_weight = 1.0 / (1.0 + distance / 200.0)
         
-        weighted_score_sum += orientation_score * weight
-        total_weight += weight
+        # Classify into quadrants (with 45° overlap zones)
+        # North: 315-360, 0-45. South: 135-225. East: 45-135. West: 225-315
+        if angle >= 315 or angle < 45:
+            north_weight += proximity_weight
+        elif 135 <= angle < 225:
+            south_weight += proximity_weight
+        elif 45 <= angle < 135:
+            east_weight += proximity_weight
+        else:  # 225-315
+            west_weight += proximity_weight
     
-    avg_score = weighted_score_sum / total_weight if total_weight > 0 else 0.5
-    avg_angle = statistics.mean(orientations)
+    # Layout quality assessment
+    total_weight = north_weight + south_weight + east_weight + west_weight
+    layout_bonus = 0.0
     
-    logger.info(f"Orientation score: {avg_score:.3f} "
-                f"({len(orientations)} buildings analyzed, avg angle: {avg_angle:.1f}°, "
-                f"dominant direction: {angle_to_direction(avg_angle)})")
+    if total_weight > 0 and valid_count >= 3:
+        # Normalize
+        n = north_weight / total_weight
+        s = south_weight / total_weight
+        e = east_weight / total_weight
+        w = west_weight / total_weight
+        
+        # 靠山: More buildings behind (north) than in front (south) is ideal
+        # This means the site likely faces south with backing support
+        backing_quality = min((n - s + 0.05) * 1.5, 0.05)  # up to +0.05
+        backing_quality = max(backing_quality, -0.03)  # mild penalty at worst
+        
+        # 青龙白虎 balance: east and west should be roughly balanced
+        ew_balance = 1.0 - abs(e - w) * 2.0  # 1.0 = perfect balance
+        balance_bonus = max(0, ew_balance * 0.03)  # up to +0.03
+        
+        layout_bonus = backing_quality + balance_bonus
+        
+        logger.info(f"Orientation layout (四象): N={n:.2f} S={s:.2f} E={e:.2f} W={w:.2f}, "
+                    f"backing={backing_quality:+.3f}, balance={balance_bonus:+.3f}")
     
-    return avg_score
+    # --- Step 3: Confidence boost from having buildings (developed area) ---
+    # Planned developments (campuses, residential) follow orientation standards
+    if valid_count >= 5:
+        development_boost = 0.03  # Well-developed area = more likely standard orientation
+    elif valid_count >= 2:
+        development_boost = 0.01
+    else:
+        development_boost = 0.0
+    
+    score = min(1.0, max(0.0, cultural_base + layout_bonus + development_boost))
+    
+    logger.info(f"Orientation score: {score:.3f} "
+                f"({valid_count} buildings, cultural={cultural_base:.2f}, "
+                f"layout={layout_bonus:+.3f}, dev={development_boost:+.3f})")
+    
+    return score
 
 
 def estimate_building_orientation(lon: float, lat: float, 
@@ -759,13 +866,17 @@ def calculate_qi_flow_score(road_data: Dict,
     intersections = road_data.get('intersections', [])
     
     # Component 1: Road connectivity score (0-1)
-    # Optimal: 5-15 roads providing good connectivity without chaos
-    if road_count < 5:
-        road_score = road_count / 5 * 0.6  # Low connectivity
-    elif 5 <= road_count <= 15:
-        road_score = 0.6 + (road_count - 5) / 10 * 0.4  # Optimal range
+    # Feng Shui principle: good connectivity = good Qi circulation.
+    # More roads in a planned city = better grid = better Qi pathways.
+    # Penalty only kicks in at extreme density (>40 roads) = chaotic energy.
+    if road_count < 3:
+        road_score = road_count / 3 * 0.5   # Very sparse: poor Qi circulation
+    elif road_count < 10:
+        road_score = 0.5 + (road_count - 3) / 7 * 0.35  # Growing connectivity
+    elif road_count <= 40:
+        road_score = 0.85 + (road_count - 10) / 30 * 0.15  # Well-planned: max score
     else:
-        road_score = max(0.4, 1.0 - (road_count - 15) / 20 * 0.6)  # Too many roads
+        road_score = max(0.75, 1.0 - (road_count - 40) / 60 * 0.25)  # Very dense: slight penalty
     
     # Component 2: Openness score (inverse of building density)
     openness_score = 1.0 - building_density
@@ -809,21 +920,21 @@ def calculate_environmental_quality(hospitals: List[Dict],
     """
     # Hospital score: optimal is 2 hospitals
     if not hospitals:
-        hospital_score = 0.0
+        hospital_score = 0.3  # baseline — absence doesn't mean bad area, could be data gap
     elif len(hospitals) <= 3:
-        hospital_score = min(len(hospitals) / 2, 1.0)
+        hospital_score = min(0.3 + len(hospitals) / 2 * 0.7, 1.0)
     else:
         # Too many hospitals may indicate medical district (not ideal for living)
         hospital_score = max(0.5, 1.0 - (len(hospitals) - 3) / 5 * 0.5)
     
-    # School score: optimal is 4 schools
+    # School score: in university zones many education POIs are expected
     if not schools:
-        school_score = 0.0
+        school_score = 0.2  # baseline — no schools could be data gap
     elif len(schools) <= 5:
-        school_score = min(len(schools) / 4, 1.0)
+        school_score = min(0.2 + len(schools) / 4 * 0.8, 1.0)
     else:
-        # Too many schools may mean very dense area
-        school_score = max(0.5, 1.0 - (len(schools) - 5) / 10 * 0.5)
+        # Dense education is positive — university towns, school districts
+        school_score = min(1.0, 0.8 + (len(schools) - 5) / 20 * 0.2)
     
     # Weighted average (equal importance)
     score = (hospital_score * 0.5 + school_score * 0.5)

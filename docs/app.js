@@ -9,9 +9,10 @@ let currentPolygon = null;
 let polygonEditor = null;
 let defaultMarkerIcon = null;
 let polygonVertexMarkers = [];
-let apiBaseUrl = 'https://fengshui-ai.onrender.com';
+let apiBaseUrl = 'http://127.0.0.1:5001';
 let selectionMode = 'location';
 let latestReportPayload = null;
+let latestAnalysisData = null;
 const geocodeCache = new Map();
 let isInputComposing = false;
 let amapAutocompleteService = null;
@@ -66,6 +67,12 @@ window.addEventListener('unhandledrejection', function(event) {
     }
 });
 
+window.addEventListener('qilang:changed', function() {
+    if (latestAnalysisData) {
+        displayResults(latestAnalysisData);
+    }
+});
+
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeApp);
@@ -110,25 +117,37 @@ async function initializeApp() {
 }
 
 async function loadConfiguration() {
-    try {
-        const response = await fetch('https://fengshui-ai.onrender.com/api/config');
-        if (!response.ok) {
-            throw new Error('Failed to load configuration');
+    const LOCAL_URL  = 'http://127.0.0.1:5001';
+    const REMOTE_URL = 'https://fengshui-ai.onrender.com';
+
+    // Try local backend first (fast, 2s timeout).
+    // Then remote. Return whichever responds first with valid config.
+    const candidates = [LOCAL_URL, REMOTE_URL];
+
+    for (const base of candidates) {
+        try {
+            const ctrl = new AbortController();
+            const tid  = setTimeout(() => ctrl.abort(), base === LOCAL_URL ? 2000 : 8000);
+            const response = await fetch(`${base}/api/config`, { signal: ctrl.signal });
+            clearTimeout(tid);
+            if (!response.ok) continue;
+            const data = await response.json();
+            if (!data.success) continue;
+            // Use whichever backend responded
+            data.data.api_base_url = base;
+            console.log(`✅ Backend: ${base}`);
+            return data.data;
+        } catch (_) {
+            // next candidate
         }
-        const data = await response.json();
-        if (!data.success) {
-            throw new Error(data.error || 'Configuration error');
-        }
-        return data.data;
-    } catch (error) {
-        console.warn('Using default configuration:', error);
-        // Fallback configuration
-        return {
-            api_base_url: 'https://fengshui-ai.onrender.com',
-            map_default_center: [116.397428, 39.90923],
-            map_default_zoom: 13
-        };
     }
+
+    console.warn('No backend reachable, using defaults');
+    return {
+        api_base_url: REMOTE_URL,
+        map_default_center: [116.397428, 39.90923],
+        map_default_zoom: 13
+    };
 }
 
 // Initialize AMap with error handling
@@ -153,14 +172,20 @@ function initMap(defaultCenter = [116.397428, 39.90923], defaultZoom = 13) {
             return;
         }
         
+        // Satellite layer with retina support for sharper tiles.
+        const satLayer = new AMap.TileLayer.Satellite({
+            detectRetina: true
+        });
+        const roadLayer = new AMap.TileLayer.RoadNet({
+            detectRetina: true
+        });
+
         map = new AMap.Map('map-container', {
             zoom: defaultZoom,
             center: defaultCenter,
             viewMode: '2D',
-            layers: [
-                new AMap.TileLayer.Satellite(),
-                new AMap.TileLayer.RoadNet()
-            ]
+            resizeEnable: true,
+            layers: [satLayer, roadLayer]
         });
 
         // Add layer switcher control
@@ -941,19 +966,10 @@ function applySuggestionSelection(item, runSearch = false) {
     hideSuggestionPopup();
 
     if (runSearch) {
-        if (item.lng != null && item.lat != null) {
-            revealPostSearchSettings();
-            setSelectionMode('location');
-            applyLocationToMap(item.lng, item.lat, item.name || item.searchText);
-            geocodeCache.set(item.searchText.toLowerCase(), {
-                lng: item.lng,
-                lat: item.lat,
-                address: item.name || item.searchText
-            });
-            setSearchStatus('Location found.', 'success');
-        } else {
-            searchLocation(item.searchText);
-        }
+        // Always go through searchLocation which uses PlaceSearch for precise
+        // POI coordinates.  Input-tips coordinates can be approximate
+        // (district center rather than exact POI entrance).
+        searchLocation(item.searchText);
     }
 }
 
@@ -1142,48 +1158,43 @@ async function geocodeViaAmap(query) {
             finishReject(new Error('Map geocoding timed out'));
         }, 4000);
 
-        AMap.plugin(['AMap.Geocoder'], function() {
+        AMap.plugin(['AMap.PlaceSearch', 'AMap.Geocoder'], function() {
             try {
-                const geocoder = new AMap.Geocoder({ city: '全国', radius: 50000 });
-                geocoder.getLocation(query, function(status, result) {
+                // PlaceSearch first — returns the exact POI location for named
+                // places (universities, malls, hospitals, etc.).
+                const placeSearch = new AMap.PlaceSearch({
+                    pageSize: 1,
+                    pageIndex: 1,
+                    city: '全国',
+                    citylimit: false
+                });
+
+                placeSearch.search(query, function(psStatus, psResult) {
                     if (finished) return;
-
-                    if (status === 'complete' && result?.info === 'OK' && result?.geocodes?.length) {
-                        const firstResult = result.geocodes[0];
+                    const poi = psResult?.poiList?.pois?.[0];
+                    if (psStatus === 'complete' && poi?.location) {
                         finishResolve({
-                            lng: Number(firstResult.location.lng),
-                            lat: Number(firstResult.location.lat),
-                            address: firstResult.formattedAddress || query
+                            lng: Number(poi.location.lng),
+                            lat: Number(poi.location.lat),
+                            address: poi.name || query
                         });
-                        return;
+                    } else {
+                        // Fall back to Geocoder for street addresses
+                        const geocoder = new AMap.Geocoder({ city: '全国', radius: 50000 });
+                        geocoder.getLocation(query, function(status, result) {
+                            if (finished) return;
+                            if (status === 'complete' && result?.info === 'OK' && result?.geocodes?.length) {
+                                const firstResult = result.geocodes[0];
+                                finishResolve({
+                                    lng: Number(firstResult.location.lng),
+                                    lat: Number(firstResult.location.lat),
+                                    address: firstResult.formattedAddress || query
+                                });
+                            } else {
+                                finishReject(new Error('Location not found'));
+                            }
+                        });
                     }
-
-                    AMap.plugin(['AMap.PlaceSearch'], function() {
-                        try {
-                            const placeSearch = new AMap.PlaceSearch({
-                                pageSize: 1,
-                                pageIndex: 1,
-                                city: '全国',
-                                citylimit: false
-                            });
-
-                            placeSearch.search(query, function(psStatus, psResult) {
-                                if (finished) return;
-                                const poi = psResult?.poiList?.pois?.[0];
-                                if (psStatus === 'complete' && poi?.location) {
-                                    finishResolve({
-                                        lng: Number(poi.location.lng),
-                                        lat: Number(poi.location.lat),
-                                        address: poi.name || query
-                                    });
-                                } else {
-                                    finishReject(new Error('Location not found'));
-                                }
-                            });
-                        } catch (error) {
-                            finishReject(error);
-                        }
-                    });
                 });
             } catch (error) {
                 finishReject(error);
@@ -1239,15 +1250,9 @@ async function geocodeViaOpenStreetMap(query) {
 function geocodeViaKnownLocations(query) {
     const normalized = query.trim().toLowerCase();
     const knownLocations = {
+        // Only broad city-level locations. Specific places (universities, etc.)
+        // should go through AMap PlaceSearch for precise POI coordinates.
         nanjing: { lng: 118.7969, lat: 32.0603, address: 'Nanjing, Jiangsu, China' },
-        njupt: { lng: 118.9157, lat: 32.1192, address: 'Nanjing University of Posts and Telecommunications (NUPT), Nanjing, China' },
-        'nanjing university of posts and telecommunications': { lng: 118.9157, lat: 32.1192, address: 'Nanjing University of Posts and Telecommunications (NUPT), Nanjing, China' },
-        南京邮电大学: { lng: 118.9157, lat: 32.1192, address: '南京邮电大学' },
-        呈坎: { lng: 118.286296, lat: 29.921911, address: '呈坎古村, 黄山市徽州区' },
-        呈坎古村: { lng: 118.286296, lat: 29.921911, address: '呈坎古村, 黄山市徽州区' },
-        '安徽省黄山市徽州区呈坎镇罗贤能宅呈坎': { lng: 118.286296, lat: 29.921911, address: '呈坎古村, 黄山市徽州区' },
-        chengkan: { lng: 118.286296, lat: 29.921911, address: 'Chengkan Ancient Village, Huizhou District, Huangshan' },
-        'chengkan ancient village': { lng: 118.286296, lat: 29.921911, address: 'Chengkan Ancient Village, Huizhou District, Huangshan' },
         南京: { lng: 118.7969, lat: 32.0603, address: 'Nanjing, Jiangsu, China' },
         beijing: { lng: 116.4074, lat: 39.9042, address: 'Beijing, China' },
         北京: { lng: 116.4074, lat: 39.9042, address: 'Beijing, China' },
@@ -1373,25 +1378,40 @@ async function searchLocation(inputQuery = null) {
             return;
         }
 
+        // AMap JS PlaceSearch first (works purely in frontend, precise POI coords).
+        // Backend and OSM as fallbacks.
         try {
-            const fastResult = await firstSuccessfulGeocode([
-                { label: 'Backend', run: () => geocodeViaBackend(query) },
-                { label: 'AMap', run: () => geocodeViaAmap(query) }
-            ]);
-
+            const amapResult = await geocodeViaAmap(query);
             revealPostSearchSettings();
             setSelectionMode('location');
-            const resolvedAddress = preferUserQueryAddress(query, fastResult.address);
-            applyLocationToMap(fastResult.lng, fastResult.lat, resolvedAddress);
+            const resolvedAddress = preferUserQueryAddress(query, amapResult.address);
+            applyLocationToMap(amapResult.lng, amapResult.lat, resolvedAddress);
             geocodeCache.set(queryKey, {
-                ...fastResult,
+                ...amapResult,
                 address: resolvedAddress
             });
             setSearchStatus('Location found.', 'success');
             return;
-        } catch (fastError) {
-            failures.push(fastError.message);
-            console.warn('Fast geocoding providers failed, falling back to OpenStreetMap:', fastError.message);
+        } catch (amapError) {
+            failures.push(`AMap: ${amapError.message}`);
+            console.warn('AMap JS geocode failed, trying backend:', amapError.message);
+        }
+
+        try {
+            const backendResult = await geocodeViaBackend(query);
+            revealPostSearchSettings();
+            setSelectionMode('location');
+            const resolvedAddress = preferUserQueryAddress(query, backendResult.address);
+            applyLocationToMap(backendResult.lng, backendResult.lat, resolvedAddress);
+            geocodeCache.set(queryKey, {
+                ...backendResult,
+                address: resolvedAddress
+            });
+            setSearchStatus('Location found.', 'success');
+            return;
+        } catch (backendError) {
+            failures.push(`Backend: ${backendError.message}`);
+            console.warn('Backend geocode failed, trying OpenStreetMap:', backendError.message);
         }
 
         try {
@@ -1500,6 +1520,11 @@ async function analyzeSelection() {
             }
         }
 
+        // FORCE FRESH DATA: Clear localStorage cache and request fresh analysis from backend
+        localStorage.removeItem('latestAnalysisResult');
+        localStorage.removeItem('analysisCache');
+        sessionStorage.clear();
+
         displayLoading();
 
         let locationData = null;
@@ -1567,15 +1592,21 @@ async function fetchLocationAnalysis() {
         latitude: selectedSnapshot.lat,
         longitude: selectedSnapshot.lng,
         address: selectedSnapshot.address || undefined,
-        radius: radius
+        radius: radius,
+        refresh_cache: true  // Always request fresh data from backend
     };
 
     console.log('🚀 Analyzing location:', requestData);
 
-    const response = await fetch(`${apiBaseUrl}/api/analyze`, {
+    // Add cache-busting timestamp to force fresh backend response
+    const cacheBreaker = `_t=${Date.now()}`;
+    
+    const response = await fetch(`${apiBaseUrl}/api/analyze?${cacheBreaker}`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
         },
         body: JSON.stringify(requestData),
         timeout: 30000
@@ -1621,10 +1652,15 @@ async function fetchPolygonAnalysis() {
 
     console.log('🚀 Submitting polygon analysis:', coordinates);
 
-    const response = await fetch(`${apiBaseUrl}/api/polygon-analysis`, {
+    // Add cache-busting timestamp to force fresh backend response
+    const cacheBreaker = `_t=${Date.now()}`;
+    
+    const response = await fetch(`${apiBaseUrl}/api/polygon-analysis?${cacheBreaker}`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
         },
         body: JSON.stringify({
             coordinates: coordinates
@@ -1793,7 +1829,10 @@ function findLowestCategories(categoryScores, limit = 3) {
         .filter(([name]) => !['yin_yang_balance', 'five_elements_harmony', 'qi_flow'].includes(name))
         .sort(([, a], [, b]) => a - b)
         .slice(0, limit)
-        .map(([name, value]) => `${formatCategoryName(name)} is under target (${Math.round(value)}/100).`);
+        .map(([name, value]) => tRuntime(
+            `${formatCategoryName(name)} is under target (${Math.round(value)}/100).`,
+            `${formatCategoryName(name)} 低于目标（${Math.round(value)}/100）。`
+        ));
 }
 
 function getElementProfile(fiveElements) {
@@ -1813,20 +1852,40 @@ function getElementProfile(fiveElements) {
     };
 }
 
+function localizeElementName(name) {
+    const map = {
+        Wood: tRuntime('Wood', '木'),
+        Fire: tRuntime('Fire', '火'),
+        Earth: tRuntime('Earth', '土'),
+        Metal: tRuntime('Metal', '金'),
+        Water: tRuntime('Water', '水')
+    };
+
+    return map[name] || name;
+}
+
 function getStatusText(score) {
-    if (score >= 80) return 'Excellent';
-    if (score >= 60) return 'Balanced';
-    return 'Needs Improvement';
+    if (score >= 80) return tRuntime('Excellent', '优秀');
+    if (score >= 60) return tRuntime('Balanced', '平衡');
+    return tRuntime('Needs Improvement', '需改善');
 }
 
 const SCORE_GRADES = [
-    { min: 0, range: 'Below 50', description: 'Poor', color: '#eab308' },
-    { min: 50, range: '50 – 59', description: 'Weak', color: '#eab308' },
-    { min: 60, range: '60 – 69', description: 'Moderate', color: '#f59e0b' },
-    { min: 70, range: '70 – 79', description: 'Good', color: '#10b981' },
-    { min: 80, range: '80 – 89', description: 'Very Good', color: '#10b981' },
-    { min: 90, range: '90 – 100', description: 'Excellent', color: '#059669' }
+    { min: 0, range: { en: 'Below 50', zh: '50以下' }, description: { en: 'Poor', zh: '较差' }, color: '#eab308' },
+    { min: 50, range: { en: '50 – 59', zh: '50 – 59' }, description: { en: 'Weak', zh: '偏弱' }, color: '#eab308' },
+    { min: 60, range: { en: '60 – 69', zh: '60 – 69' }, description: { en: 'Moderate', zh: '中等' }, color: '#f59e0b' },
+    { min: 70, range: { en: '70 – 79', zh: '70 – 79' }, description: { en: 'Good', zh: '良好' }, color: '#10b981' },
+    { min: 80, range: { en: '80 – 89', zh: '80 – 89' }, description: { en: 'Very Good', zh: '很好' }, color: '#10b981' },
+    { min: 90, range: { en: '90 – 100', zh: '90 – 100' }, description: { en: 'Excellent', zh: '优秀' }, color: '#059669' }
 ];
+
+function getUiLang() {
+    return window.QiLang?.currentLang === 'zh' ? 'zh' : 'en';
+}
+
+function tRuntime(enText, zhText) {
+    return getUiLang() === 'zh' ? zhText : enText;
+}
 
 function getGradeForScore(score) {
     const numericScore = Number(score);
@@ -1846,13 +1905,16 @@ function getStatusColor(score) {
 }
 
 function getScoreTextColor(score) {
-    // All score numbers are black, regardless of value
-    return '#000000';
+    return getStatusColor(score);
 }
 
 function getScoreRange(score) {
     const grade = getGradeForScore(score);
-    return { range: grade.range, description: grade.description };
+    const lang = getUiLang();
+    return {
+        range: grade.range?.[lang] || grade.range?.en || '',
+        description: grade.description?.[lang] || grade.description?.en || ''
+    };
 }
 
 function getScoreHealthLabel(score) {
@@ -1923,7 +1985,7 @@ function getAnalyzedLocationDetails(data, fallbackRadius = null) {
     const labelFromAddress = labelCandidates.find(isDisplayableLocationLabel) || '';
     const fallbackLabel = Number.isFinite(latitude) && Number.isFinite(longitude)
         ? `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
-        : 'Selected analysis location';
+        : tRuntime('Selected analysis location', '已选择分析位置');
 
     return {
         label: labelFromAddress || fallbackLabel,
@@ -1943,11 +2005,61 @@ function averageScores(values) {
     return clean.reduce((acc, value) => acc + value, 0) / clean.length;
 }
 
+function normalizeFiveElements(data, categoryScores) {
+    const topLevel = (data && typeof data.five_elements === 'object' && data.five_elements) || {};
+    const categoryLevel = (categoryScores && typeof categoryScores.five_elements === 'object' && categoryScores.five_elements) || {};
+    const source = Object.keys(topLevel).length ? topLevel : categoryLevel;
+
+    return {
+        wood: Number(firstFiniteNumber(source.wood, 0) || 0),
+        fire: Number(firstFiniteNumber(source.fire, 0) || 0),
+        earth: Number(firstFiniteNumber(source.earth, 0) || 0),
+        metal: Number(firstFiniteNumber(source.metal, 0) || 0),
+        water: Number(firstFiniteNumber(source.water, 0) || 0),
+        overall_score: Number(
+            firstFiniteNumber(
+                source.overall_score,
+                source.overall_harmony,
+                categoryScores?.five_elements_harmony,
+                0
+            ) || 0
+        )
+    };
+}
+
+function normalizeCategoryEntries(categoryScores, fallbackFiveElementsOverall = 0) {
+    return Object.entries(categoryScores || {}).flatMap(([name, value]) => {
+        if (name === 'five_elements') {
+            if (value && typeof value === 'object') {
+                const overall = firstFiniteNumber(
+                    value.overall_harmony,
+                    value.overall_score,
+                    fallbackFiveElementsOverall,
+                    0
+                );
+                return [['five_elements', Number(overall || 0)]];
+            }
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? [['five_elements', parsed]] : [];
+        }
+
+        if (name === 'five_elements_harmony') {
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? [['five_elements', parsed]] : [];
+        }
+
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? [[name, parsed]] : [];
+    });
+}
+
 function buildReportPayloadFromAnalysis(data) {
     const analyzedLocation = getAnalyzedLocationDetails(data);
     const polygon = data.polygon || null;
     const categoryScores = data.category_scores || {};
-    const fiveElements = data.five_elements || {};
+    const fiveElements = normalizeFiveElements(data, categoryScores);
+    const yinYangBalance = Number(firstFiniteNumber(data.yin_yang_balance, categoryScores.yin_yang_balance, 0) || 0);
+    const qiFlowScore = Number(firstFiniteNumber(data.qi_flow_score, data.qi_flow, categoryScores.qi_flow, 0) || 0);
 
     return {
         generatedAt: new Date().toISOString(),
@@ -1974,13 +2086,13 @@ function buildReportPayloadFromAnalysis(data) {
         } : null,
         categoryScores,
         fiveElements,
-        yinYangBalance: Number(data.yin_yang_balance || 0),
-        qiFlowScore: Number(data.qi_flow_score || 0),
+        yinYangBalance,
+        qiFlowScore,
         explanations: Array.isArray(data.explanations) ? data.explanations.slice(0, 8) : [],
         suggestions: Array.isArray(data.suggestions) ? data.suggestions.slice(0, 8) : [],
         grades: SCORE_GRADES.map(grade => ({
-            range: grade.range,
-            label: grade.description,
+            range: grade.range?.[getUiLang()] || grade.range?.en,
+            label: grade.description?.[getUiLang()] || grade.description?.en,
             color: grade.color
         }))
     };
@@ -1988,7 +2100,7 @@ function buildReportPayloadFromAnalysis(data) {
 
 function exportAnalysisReport() {
     if (!latestReportPayload) {
-        alert('Please run an analysis before exporting a report.');
+        alert(tRuntime('Please run an analysis before exporting a report.', '请先运行分析，再导出报告。'));
         return;
     }
 
@@ -1999,21 +2111,21 @@ function exportAnalysisReport() {
         localStorage.setItem(reportKey, JSON.stringify(latestReportPayload));
     } catch (error) {
         console.error('Failed to cache report payload:', error);
-        alert('Failed to prepare report export. Please try again.');
+        alert(tRuntime('Failed to prepare report export. Please try again.', '准备导出报告失败，请重试。'));
         return;
     }
 
     const reportUrl = `exportreport.html?reportId=${encodeURIComponent(reportId)}`;
     const reportWindow = window.open(reportUrl, '_blank', 'noopener');
     if (!reportWindow) {
-        alert('Pop-up blocked. Please allow pop-ups to export the report.');
+        alert(tRuntime('Pop-up blocked. Please allow pop-ups to export the report.', '弹窗被拦截，请允许弹窗以导出报告。'));
     }
 }
 
 function buildActionButtons() {
     return `
         <div class="actions-row">
-            <button class="primary-action" type="button" onclick="exportAnalysisReport()">Download PDF Report</button>
+            <button class="primary-action" type="button" onclick="exportAnalysisReport()">${tRuntime('Download PDF Report', '下载 PDF 报告')}</button>
         </div>
     `;
 }
@@ -2021,6 +2133,51 @@ function buildActionButtons() {
 function displayResults(data) {
     _stopLoadingProgress();
     setAnalyzingLayout(false);
+    latestAnalysisData = data;
+
+    const ui = {
+        yourAnalysis: tRuntime('Your Analysis', '您的分析'),
+        overallFengShui: tRuntime('Overall Feng Shui', '综合风水'),
+        scoreLegend: tRuntime('Score color legend', '评分颜色图例'),
+        locationUsed: tRuntime('Location Used For Analysis', '用于分析的位置'),
+        yourLocation: tRuntime('Your Location', '您的位置'),
+        locationMetrics: tRuntime('Location Metrics', '位置指标'),
+        radius: tRuntime('Radius', '半径'),
+        latitude: tRuntime('Latitude', '纬度'),
+        longitude: tRuntime('Longitude', '经度'),
+        orientation: tRuntime('Orientation', '朝向'),
+        analysisScores: tRuntime('Analysis Scores', '分析评分'),
+        yinYang: tRuntime('Yin-Yang Balance', '阴阳平衡'),
+        qiFlow: tRuntime('Qi Flow', '气流'),
+        fiveElements: tRuntime('Five Elements', '五行'),
+        traditional: tRuntime('Traditional', '传统评分'),
+        overall: tRuntime('Overall', '综合评分'),
+        aiScore: tRuntime('AI Score', 'AI评分'),
+        aiScoreTitle: tRuntime(
+            'AI Score: Machine learning prediction. May differ from Traditional when site has unique characteristics (campuses, temples, etc)',
+            'AI评分：机器学习预测结果。在校园、寺庙等特殊场景下可能与传统评分存在差异。'
+        ),
+        categoryBreakdown: tRuntime('Category Breakdown', '分类细分'),
+        methodology: tRuntime('Methodology', '评分方法'),
+        methodologyDesc: tRuntime(
+            'Overall Score blends Traditional Feng Shui analysis (80%) with AI predictions (20%). Traditional scoring evaluates orientation, green space, water proximity, and environmental quality.',
+            '综合评分由传统风水分析（80%）与AI预测（20%）融合而成。传统评分主要评估朝向、绿地、水体邻近度与环境质量。'
+        ),
+        aiNoteTitle: tRuntime('AI Score Note:', 'AI评分说明：'),
+        aiNoteText: tRuntime(
+            'The AI model is trained on commercial/residential urban features. This location may have unique characteristics (campus, institutional, or sacred site) that the standard model does not fully recognize. The Traditional analysis is often more reliable for non-standard locations. We are continuously improving the AI to recognize more site types.',
+            'AI模型主要基于商住城市特征训练。该位置可能具备校园、机构或宗教场所等特殊属性，标准模型暂未完全识别。对于非标准场景，传统分析通常更可靠。我们会持续优化AI以识别更多场地类型。'
+        ),
+        fiveElementsDistribution: tRuntime('Five Elements Distribution', '五行分布'),
+        elementAnalysis: tRuntime('Element Analysis', '元素分析'),
+        strongest: tRuntime('Strongest', '最强项'),
+        weakest: tRuntime('Weakest', '最弱项'),
+        summary: tRuntime('Summary', '总结'),
+        summaryText: tRuntime(
+            `Environmental analysis indicates an overall score of ${Math.round(OutdoorUI.clampScore(data.final_score || 0))}/100 with status ${getStatusText(OutdoorUI.clampScore(data.final_score || 0))}. Priority should focus on low-scoring environmental categories while maintaining strengths in ${localizeElementName(getElementProfile(normalizeFiveElements(data, data.category_scores || {})).strongest[0])} and flow continuity.`,
+            `环境分析显示综合评分为 ${Math.round(OutdoorUI.clampScore(data.final_score || 0))}/100，状态为 ${getStatusText(OutdoorUI.clampScore(data.final_score || 0))}。建议优先改善低分项，同时保持 ${localizeElementName(getElementProfile(normalizeFiveElements(data, data.category_scores || {})).strongest[0])} 的优势与气流连续性。`
+        )
+    };
 
     const dashboard = document.getElementById('dashboard');
     const summaryCard = document.getElementById('summaryCard');
@@ -2038,9 +2195,13 @@ function displayResults(data) {
     const categoryScores = data.category_scores || {};
     const explanations = data.explanations || [];
     const suggestions = data.suggestions || [];
-    const yinYangBalance = OutdoorUI.clampScore(data.yin_yang_balance || 0);
-    const fiveElements = data.five_elements || {};
-    const qiFlowScore = OutdoorUI.clampScore(data.qi_flow_score || 0);
+    const fiveElements = normalizeFiveElements(data, categoryScores);
+    const yinYangBalance = OutdoorUI.clampScore(
+        firstFiniteNumber(data.yin_yang_balance, categoryScores.yin_yang_balance, 0) || 0
+    );
+    const qiFlowScore = OutdoorUI.clampScore(
+        firstFiniteNumber(data.qi_flow_score, data.qi_flow, categoryScores.qi_flow, 0) || 0
+    );
     const polygonInfo = data.polygon || {};
     const isPolygonAnalysis = Boolean(data.polygon);
     const fallbackRadius = parseInt(document.getElementById('radius')?.value, 10) || 500;
@@ -2051,8 +2212,16 @@ function displayResults(data) {
     const analyzedLocationLabel = analyzedLocation.label;
     const analyzedCoordsText = analyzedLocation.coordinatesText;
 
-    const elementOverall = OutdoorUI.clampScore(fiveElements.overall_score || 0);
+    const elementOverall = OutdoorUI.clampScore(
+        firstFiniteNumber(
+            fiveElements.overall_score,
+            fiveElements.overall_harmony,
+            categoryScores.five_elements_harmony,
+            0
+        ) || 0
+    );
     const elementProfile = getElementProfile(fiveElements);
+    const categoryEntries = normalizeCategoryEntries(categoryScores, elementOverall);
 
     const orientationScore = OutdoorUI.clampScore(categoryScores.orientation || 0);
     const buildingHarmonyScore = OutdoorUI.clampScore(categoryScores.building_harmony || 0);
@@ -2063,9 +2232,10 @@ function displayResults(data) {
     const spiritualEnergyScore = OutdoorUI.clampScore(categoryScores.spiritual_energy || 0);
 
     const currentFindings = splitFindings(explanations, 'Current');
-    const missingFindings = findLowestCategories(categoryScores, 3).length
-        ? findLowestCategories(categoryScores, 3)
-        : ['No major deficiencies detected in category scoring.'];
+    const normalizedCategoryScores = Object.fromEntries(categoryEntries);
+    const missingFindings = findLowestCategories(normalizedCategoryScores, 3).length
+        ? findLowestCategories(normalizedCategoryScores, 3)
+        : [tRuntime('No major deficiencies detected in category scoring.', '分类评分未发现明显短板。')];
     const improvements = splitFindings(suggestions, 'Improvement');
 
     latestReportPayload = buildReportPayloadFromAnalysis(data);
@@ -2079,7 +2249,7 @@ function displayResults(data) {
         const gaugeOffset = gaugeCircumference * (1 - scorePercent / 100);
         
         summaryCard.innerHTML = `
-            <h2>Your Analysis</h2>
+            <h2>${ui.yourAnalysis}</h2>
             <div class="analysis-header">
                 <div class="gauge-container">
                     <svg class="circular-gauge" viewBox="0 0 200 200">
@@ -2092,14 +2262,14 @@ function displayResults(data) {
                 </div>
                 
                 <div class="analysis-info">
-                    <div class="info-label">Overall Feng Shui</div>
-                    <div class="info-status"><strong>${scoreRange.description}</strong></div>
+                    <div class="info-label">${ui.overallFengShui}</div>
+                    <div class="info-status"><strong style="color: ${activeColor};">${scoreRange.description}</strong></div>
                     <div class="color-bar">
                         <div class="color-segment" style="background-color: ${activeColor}; width: 100%;"></div>
                     </div>
-                    <div class="score-legend" aria-label="Score color legend">
+                    <div class="score-legend" aria-label="${ui.scoreLegend}">
                         ${SCORE_GRADES.map(grade => `
-                            <span class="legend-item"><span class="legend-dot" style="background:${grade.color};"></span><span class="legend-label">${grade.description}</span></span>
+                            <span class="legend-item"><span class="legend-dot" style="background:${grade.color};"></span><span class="legend-label">${grade.description?.[getUiLang()] || grade.description?.en}</span></span>
                         `).join('')}
                     </div>
                 </div>
@@ -2108,43 +2278,43 @@ function displayResults(data) {
     }
 
     const orientation = Number.isFinite(longitude)
-        ? (longitude >= 0 ? 'East-Oriented Sector' : 'West-Oriented Sector')
-        : 'N/A';
+        ? (longitude >= 0 ? tRuntime('East-Oriented Sector', '东向扇区') : tRuntime('West-Oriented Sector', '西向扇区'))
+        : tRuntime('N/A', '无');
 
     const locationMetricsHTML = isPolygonAnalysis ? '' : `
-            <h3 class="section-heading" style="color: #000000;">Location Used For Analysis</h3>
+            <h3 class="section-heading" style="color: #000000;">${ui.locationUsed}</h3>
             <div class="analysis-location-card" title="${escapeHtml(analyzedLocationLabel)}" style="color: #000000;">
-                <div class="analysis-location-card-label" style="color: #000000;">Your Location</div>
+                <div class="analysis-location-card-label" style="color: #000000;">${ui.yourLocation}</div>
                 <div class="analysis-location-card-name" style="color: #000000;">${escapeHtml(analyzedLocationLabel)}</div>
                 <div class="analysis-location-card-coords" style="color: #000000;">${escapeHtml(analyzedCoordsText)}</div>
             </div>
-            <h3 class="section-heading" style="color: #000000;">Location Metrics</h3>
+            <h3 class="section-heading" style="color: #000000;">${ui.locationMetrics}</h3>
             <div class="location-grid" style="color: #000000;">
                 <div class="location-item" style="color: #000000;">
                     <div class="location-icon">📍</div>
                     <div class="location-content">
-                        <div class="location-label" style="color: #000000;">Radius</div>
-                        <div class="location-value" style="color: #000000;">${Number.isFinite(radiusMeters) ? Math.round(radiusMeters) : 'N/A'} m</div>
+                        <div class="location-label" style="color: #000000;">${ui.radius}</div>
+                        <div class="location-value" style="color: #000000;">${Number.isFinite(radiusMeters) ? Math.round(radiusMeters) : tRuntime('N/A', '无')} m</div>
                     </div>
                 </div>
                 <div class="location-item" style="color: #000000;">
                     <div class="location-icon">🌐</div>
                     <div class="location-content">
-                        <div class="location-label" style="color: #000000;">Latitude</div>
-                        <div class="location-value" style="color: #000000;">${Number.isFinite(latitude) ? latitude.toFixed(4) : 'N/A'}</div>
+                        <div class="location-label" style="color: #000000;">${ui.latitude}</div>
+                        <div class="location-value" style="color: #000000;">${Number.isFinite(latitude) ? latitude.toFixed(4) : tRuntime('N/A', '无')}</div>
                     </div>
                 </div>
                 <div class="location-item" style="color: #000000;">
                     <div class="location-icon">🌐</div>
                     <div class="location-content">
-                        <div class="location-label" style="color: #000000;">Longitude</div>
-                        <div class="location-value" style="color: #000000;">${Number.isFinite(longitude) ? longitude.toFixed(4) : 'N/A'}</div>
+                        <div class="location-label" style="color: #000000;">${ui.longitude}</div>
+                        <div class="location-value" style="color: #000000;">${Number.isFinite(longitude) ? longitude.toFixed(4) : tRuntime('N/A', '无')}</div>
                     </div>
                 </div>
                 <div class="location-item" style="color: #000000;">
                     <div class="location-icon">🧭</div>
                     <div class="location-content">
-                        <div class="location-label" style="color: #000000;">Orientation</div>
+                        <div class="location-label" style="color: #000000;">${ui.orientation}</div>
                         <div class="location-value" style="color: #000000;">${orientation}</div>
                     </div>
                 </div>
@@ -2155,103 +2325,104 @@ function displayResults(data) {
         <div class="card">
             ${locationMetricsHTML}
             
-            <h3 class="section-heading" style="margin-top: 24px; color: #000000;">Analysis Scores</h3>
+            <h3 class="section-heading" style="margin-top: 24px; color: #000000;">${ui.analysisScores}</h3>
             <div class="scores-grid">
                 <div class="score-card">
-                    <span class="label" style="color: #000000;">Yin-Yang Balance</span>
+                    <span class="label" style="color: #000000;">${ui.yinYang}</span>
                     <span class="value" style="color: ${getScoreTextColor(yinYangBalance)};">${Math.round(yinYangBalance)}</span>
-                    <span class="score-indicator" style="background: ${getStatusColor(yinYangBalance)};"></span>
                 </div>
                 <div class="score-card">
-                    <span class="label" style="color: #000000;">Qi Flow</span>
+                    <span class="label" style="color: #000000;">${ui.qiFlow}</span>
                     <span class="value" style="color: ${getScoreTextColor(qiFlowScore)};">${Math.round(qiFlowScore)}</span>
-                    <span class="score-indicator" style="background: ${getStatusColor(qiFlowScore)};"></span>
                 </div>
                 <div class="score-card">
-                    <span class="label" style="color: #000000;">Five Elements</span>
+                    <span class="label" style="color: #000000;">${ui.fiveElements}</span>
                     <span class="value" style="color: ${getScoreTextColor(elementOverall)};">${Math.round(elementOverall)}</span>
-                    <span class="score-indicator" style="background: ${getStatusColor(elementOverall)};"></span>
                 </div>
                 <div class="score-card">
-                    <span class="label" style="color: #000000;">Traditional</span>
+                    <span class="label" style="color: #000000;">${ui.traditional}</span>
                     <span class="value" style="color: ${getScoreTextColor(traditionalScore)};">${Math.round(traditionalScore)}</span>
-                    <span class="score-indicator" style="background: ${getStatusColor(traditionalScore)};"></span>
                 </div>
                 <div class="score-card">
-                    <span class="label" style="color: #000000;">Overall</span>
+                    <span class="label" style="color: #000000;">${ui.overall}</span>
                     <span class="value" style="color: ${getScoreTextColor(finalScore)};">${Math.round(finalScore)}</span>
-                    <span class="score-indicator" style="background: ${getStatusColor(finalScore)};"></span>
                 </div>
                 ${aiScore ? `
-                <div class="score-card">
-                    <span class="label" style="color: #000000;">AI Score</span>
+                <div class="score-card" title="${ui.aiScoreTitle}">
+                    <span class="label" style="color: #000000;">${ui.aiScore}</span>
                     <span class="value" style="color: ${getScoreTextColor(OutdoorUI.clampScore(aiScore))};">${Math.round(OutdoorUI.clampScore(aiScore))}</span>
-                    <span class="score-indicator" style="background: ${getStatusColor(OutdoorUI.clampScore(aiScore))};"></span>
                 </div>
                 ` : ''}
             </div>
 
-            <h3 class="section-heading" style="margin-top: 24px; color: #000000;">Category Breakdown</h3>
+            <h3 class="section-heading" style="margin-top: 24px; color: #000000;">${ui.categoryBreakdown}</h3>
             <div class="scores-grid">
-                ${Object.entries(categoryScores)
-                    .filter(([name]) => !['yin_yang_balance', 'five_elements_harmony', 'qi_flow'].includes(name))
+                ${categoryEntries
+                    .filter(([name]) => !['yin_yang_balance', 'qi_flow'].includes(name))
                     .map(([name, value]) => `
                         <div class="score-card">
                             <span class="label" style="color: #000000;">${formatCategoryName(name)}</span>
                             <span class="value" style="color: ${getScoreTextColor(OutdoorUI.clampScore(value))};">${Math.round(OutdoorUI.clampScore(value))}</span>
-                            <span class="score-indicator" style="background: ${getStatusColor(OutdoorUI.clampScore(value))};"></span>
                         </div>
                     `).join('')}
+            </div>
+
+            <div style="margin-top: 24px; padding: 16px; background-color: #f0f9ff; border-left: 4px solid #3b82f6; border-radius: 4px; color: #000000;">
+                <h3 style="margin: 0 0 8px 0; font-size: 14px; color: #1e40af; font-weight: 600;">📊 ${ui.methodology}</h3>
+                <p style="margin: 0 0 12px 0; font-size: 12px; line-height: 1.5; color: #334155;">
+                    ${ui.methodologyDesc}
+                </p>
+                ${aiScore && OutdoorUI.clampScore(aiScore) < 65 ? `
+                <div style="padding: 12px; background-color: #fef3c7; border-radius: 3px; border-left: 3px solid #f59e0b; margin-top: 10px;">
+                    <p style="margin: 0; font-size: 11px; line-height: 1.4; color: #92400e;">
+                        <strong>⚠️ ${ui.aiNoteTitle}</strong> ${ui.aiNoteText}
+                    </p>
+                </div>
+                ` : ''}
             </div>
         </div>
     `;
 
     if (aiPanel) {
         aiPanel.innerHTML = `
-            <h3 style="color: #000000;">Five Elements Distribution</h3>
+            <h3 style="color: #000000;">${ui.fiveElementsDistribution}</h3>
             <div class="five-elements-chart-card">
                 <div class="five-elements-chart-wrap">
                     <canvas id="fiveElementsChart"></canvas>
                 </div>
             </div>
 
-            <h3 style="margin-top: 16px; color: #000000;">Element Analysis</h3>
+            <h3 style="margin-top: 16px; color: #000000;">${ui.elementAnalysis}</h3>
             <div class="scores-grid element-scores-grid">
                 <div class="score-card">
-                    <span class="label" style="color: #000000;">Wood</span>
+                    <span class="label" style="color: #000000;">${tRuntime('Wood', '木')}</span>
                     <span class="value" style="color: ${getScoreTextColor(elementProfile.values.Wood)};">${Math.round(elementProfile.values.Wood)}</span>
-                    <span class="score-indicator" style="background: ${getStatusColor(elementProfile.values.Wood)};"></span>
                 </div>
                 <div class="score-card">
-                    <span class="label" style="color: #000000;">Fire</span>
+                    <span class="label" style="color: #000000;">${tRuntime('Fire', '火')}</span>
                     <span class="value" style="color: ${getScoreTextColor(elementProfile.values.Fire)};">${Math.round(elementProfile.values.Fire)}</span>
-                    <span class="score-indicator" style="background: ${getStatusColor(elementProfile.values.Fire)};"></span>
                 </div>
                 <div class="score-card">
-                    <span class="label" style="color: #000000;">Earth</span>
+                    <span class="label" style="color: #000000;">${tRuntime('Earth', '土')}</span>
                     <span class="value" style="color: ${getScoreTextColor(elementProfile.values.Earth)};">${Math.round(elementProfile.values.Earth)}</span>
-                    <span class="score-indicator" style="background: ${getStatusColor(elementProfile.values.Earth)};"></span>
                 </div>
                 <div class="score-card">
-                    <span class="label" style="color: #000000;">Metal</span>
+                    <span class="label" style="color: #000000;">${tRuntime('Metal', '金')}</span>
                     <span class="value" style="color: ${getScoreTextColor(elementProfile.values.Metal)};">${Math.round(elementProfile.values.Metal)}</span>
-                    <span class="score-indicator" style="background: ${getStatusColor(elementProfile.values.Metal)};"></span>
                 </div>
                 <div class="score-card">
-                    <span class="label" style="color: #000000;">Water</span>
+                    <span class="label" style="color: #000000;">${tRuntime('Water', '水')}</span>
                     <span class="value" style="color: ${getScoreTextColor(elementProfile.values.Water)};">${Math.round(elementProfile.values.Water)}</span>
-                    <span class="score-indicator" style="background: ${getStatusColor(elementProfile.values.Water)};"></span>
                 </div>
             </div>
 
             <div class="element-summary-row">
-                <div class="element-summary-item" style="color: #000000;"><strong>Strongest:</strong> ${elementProfile.strongest[0]} (${Math.round(elementProfile.strongest[1])})</div>
-                <div class="element-summary-item" style="color: #000000;"><strong>Weakest:</strong> ${elementProfile.weakest[0]} (${Math.round(elementProfile.weakest[1])})</div>
+                <div class="element-summary-item" style="color: #000000;"><strong>${ui.strongest}:</strong> ${localizeElementName(elementProfile.strongest[0])} (${Math.round(elementProfile.strongest[1])})</div>
+                <div class="element-summary-item" style="color: #000000;"><strong>${ui.weakest}:</strong> ${localizeElementName(elementProfile.weakest[0])} (${Math.round(elementProfile.weakest[1])})</div>
             </div>
 
             <p style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--ei-border); color: #000000; font-size: 13px; line-height: 1.6;">
-                <strong>Summary:</strong> Environmental analysis indicates an overall score of ${Math.round(finalScore)}/100 with status <strong>${getStatusText(finalScore)}</strong>. 
-                Priority should focus on low-scoring environmental categories while maintaining strengths in ${elementProfile.strongest[0]} and flow continuity.
+                <strong>${ui.summary}:</strong> ${ui.summaryText}
             </p>
 
             ${buildActionButtons()}
@@ -2259,6 +2430,19 @@ function displayResults(data) {
     }
 
     if (mapInsightsPanel) {
+        const labels = {
+            high: tRuntime('High', '高'),
+            medium: tRuntime('Medium', '中'),
+            low: tRuntime('Low', '低'),
+            confidence: tRuntime('Confidence', '置信度'),
+            dataSources: tRuntime('Data sources', '数据来源'),
+            whatGood: tRuntime('What Is Already Good', '当前优势'),
+            whatNeed: tRuntime('What Needs Improvement', '需要改进'),
+            improveTitle: tRuntime('How to Improve', '如何改进'),
+            priorityNow: tRuntime('Priority Actions (Now)', '优先动作（立即）'),
+            nextPlanned: tRuntime('Next Actions (Planned)', '下一步动作（计划）')
+        };
+
         const modelAgreement = aiScore == null
             ? 65
             : Math.max(0, Math.min(100, 100 - Math.abs(OutdoorUI.clampScore(aiScore) - traditionalScore)));
@@ -2277,60 +2461,61 @@ function displayResults(data) {
 
             const confidenceScore = coverage * 0.45 + consistency * 0.35 + modelAgreement * 0.20;
 
-            if (confidenceScore >= 75) return 'High';
-            if (confidenceScore >= 55) return 'Medium';
-            return 'Low';
+            if (confidenceScore >= 75) return labels.high;
+            if (confidenceScore >= 55) return labels.medium;
+            return labels.low;
         };
-
-        const priorityImprovements = (improvements.length ? improvements : missingFindings).slice(0, 3);
-        const secondaryImprovements = (improvements.length ? improvements : missingFindings).slice(3, 6);
 
         const insightsSections = [
             {
                 id: '1',
-                title: 'Qi Flow',
+                title: tRuntime('Qi Flow', '气流'),
                 score: qiFlowScore,
                 confidence: confidenceFromAnalysis([qiFlowScore, orientationScore, roadAccessibilityScore]),
-                dataSources: ['Road Network', 'Orientation', 'Building Density'],
+                dataSources: [
+                    tRuntime('Road Network', '道路网络'),
+                    tRuntime('Orientation', '朝向'),
+                    tRuntime('Building Density', '建筑密度')
+                ],
                 signals: [
-                    `Qi Flow score: ${Math.round(qiFlowScore)}/100`,
-                    `Orientation signal: ${Math.round(orientationScore)}/100`,
-                    `Road access signal: ${Math.round(roadAccessibilityScore)}/100`
+                    tRuntime(`Qi Flow score: ${Math.round(qiFlowScore)}/100`, `气流评分：${Math.round(qiFlowScore)}/100`),
+                    tRuntime(`Orientation signal: ${Math.round(orientationScore)}/100`, `朝向信号：${Math.round(orientationScore)}/100`),
+                    tRuntime(`Road access signal: ${Math.round(roadAccessibilityScore)}/100`, `道路可达信号：${Math.round(roadAccessibilityScore)}/100`)
                 ],
                 driver: roadAccessibilityScore < 45
-                    ? 'Main score drag in this run is limited road/access continuity.'
-                    : 'Main support in this run comes from workable circulation accessibility.',
+                    ? tRuntime(`Primary drag is weak road continuity (${Math.round(roadAccessibilityScore)}/100).`, `主要短板是道路连续性偏弱（${Math.round(roadAccessibilityScore)}/100）。`)
+                    : tRuntime(`Primary support is workable circulation access (${Math.round(roadAccessibilityScore)}/100).`, `主要支撑来自可用的通行可达性（${Math.round(roadAccessibilityScore)}/100）。`),
                 good: qiFlowScore >= 70
-                    ? 'Circulation dynamics look stable; movement pathways are likely enabling smooth energy transition.'
-                    : 'Some flow pathways are active, giving a usable baseline for targeted upgrades.',
+                    ? tRuntime(`Qi flow is stable at ${Math.round(qiFlowScore)}/100 with healthy directional support.`, `气流稳定（${Math.round(qiFlowScore)}/100），方向支撑良好。`)
+                    : tRuntime(`Qi flow has a usable baseline (${Math.round(qiFlowScore)}/100) for targeted upgrades.`, `气流具备可用基础（${Math.round(qiFlowScore)}/100），适合定向优化。`),
                 missing: qiFlowScore >= 70
-                    ? 'Preserve open movement routes and avoid adding dense visual barriers at key access lines.'
-                    : 'Improve continuity by decluttering entry axes, reducing abrupt blocks, and clarifying route hierarchy.'
+                    ? tRuntime('Protect performance by keeping main entry and internal movement lines unobstructed, and avoid new bulky barriers along primary flow axes.', '通过保持主入口与内部动线畅通来维持表现，并避免在主要气流轴线上新增大型阻挡物。')
+                    : tRuntime(`Target Qi Flow 75+: declutter entry axes, reduce abrupt blocks, and improve route hierarchy where Road Access is ${Math.round(roadAccessibilityScore)}/100.`, `目标将气流提升到 75+：清理入口轴线、减少突兀阻断，并在道路可达性 ${Math.round(roadAccessibilityScore)}/100 的基础上优化路径层级。`)
             },
             {
                 id: '2',
-                title: 'Yin-Yang Balance',
+                title: tRuntime('Yin-Yang Balance', '阴阳平衡'),
                 score: yinYangBalance,
                 confidence: confidenceFromAnalysis([yinYangBalance, greenSpaceScore, buildingHarmonyScore]),
-                dataSources: ['NDVI', 'Building Density', 'Road Network'],
+                dataSources: ['NDVI', tRuntime('Building Density', '建筑密度'), tRuntime('Road Network', '道路网络')],
                 signals: [
-                    `Yin-Yang score: ${Math.round(yinYangBalance)}/100`,
-                    `Green space signal: ${Math.round(greenSpaceScore)}/100`,
-                    `Building harmony signal: ${Math.round(buildingHarmonyScore)}/100`
+                    tRuntime(`Yin-Yang score: ${Math.round(yinYangBalance)}/100`, `阴阳评分：${Math.round(yinYangBalance)}/100`),
+                    tRuntime(`Green space signal: ${Math.round(greenSpaceScore)}/100`, `绿地信号：${Math.round(greenSpaceScore)}/100`),
+                    tRuntime(`Building harmony signal: ${Math.round(buildingHarmonyScore)}/100`, `建筑和谐信号：${Math.round(buildingHarmonyScore)}/100`)
                 ],
                 driver: Math.abs(greenSpaceScore - buildingHarmonyScore) > 25
-                    ? 'Imbalance is mainly driven by mismatch between natural and built intensity.'
-                    : 'Balance is supported by relatively close natural and built signals.',
+                    ? tRuntime(`Imbalance is driven by a ${Math.abs(Math.round(greenSpaceScore - buildingHarmonyScore))}-point gap between natural and built signals.`, `失衡主要由自然与建成信号间 ${Math.abs(Math.round(greenSpaceScore - buildingHarmonyScore))} 分差引起。`)
+                    : tRuntime('Natural and built signals are relatively aligned, supporting balance.', '自然与建成信号相对一致，平衡性较好。'),
                 good: yinYangBalance >= 70
-                    ? 'Natural calm and active urban energy are in a healthy operating band.'
-                    : 'A partial equilibrium exists, which means the site can be corrected without major intervention.',
+                    ? tRuntime(`Yin-Yang is in a healthy band (${Math.round(yinYangBalance)}/100) with workable calm/activity distribution.`, `阴阳处于健康区间（${Math.round(yinYangBalance)}/100），静动分布可用。`)
+                    : tRuntime(`A partial equilibrium exists (${Math.round(yinYangBalance)}/100), so correction can be incremental.`, `当前存在部分平衡（${Math.round(yinYangBalance)}/100），可采用渐进式修正。`),
                 missing: yinYangBalance >= 70
-                    ? 'Maintain this balance by preserving both quiet restorative pockets and active functional corridors.'
-                    : 'Add calming natural elements or reduce overstimulation from over-dense built activity.'
+                    ? tRuntime('Maintain parity by preserving quiet restorative zones and active movement corridors at similar intensity.', '通过保持静态修复区与动态通行区的强度对等来维持平衡。')
+                    : tRuntime('Target Yin-Yang 72+: increase calm zones (green/restorative pockets) or reduce overstimulation from dense built edges.', '目标将阴阳提升至 72+：增加安静修复区域（绿地/休息角），或降低密集建成边界带来的过度刺激。')
             },
             {
                 id: '3',
-                title: 'Five Elements Balance',
+                title: tRuntime('Five Elements Balance', '五行平衡'),
                 score: elementOverall,
                 confidence: confidenceFromAnalysis([
                     elementProfile.values.Wood,
@@ -2339,86 +2524,110 @@ function displayResults(data) {
                     elementProfile.values.Metal,
                     elementProfile.values.Water
                 ]),
-                dataSources: ['NDVI', 'Rivers', 'Buildings', 'Orientation'],
+                dataSources: ['NDVI', tRuntime('Rivers', '河流'), tRuntime('Buildings', '建筑'), tRuntime('Orientation', '朝向')],
                 signals: [
-                    `Wood ${Math.round(elementProfile.values.Wood)}, Fire ${Math.round(elementProfile.values.Fire)}`,
-                    `Earth ${Math.round(elementProfile.values.Earth)}, Metal ${Math.round(elementProfile.values.Metal)}, Water ${Math.round(elementProfile.values.Water)}`,
-                    `Overall balance: ${Math.round(elementOverall)}/100`
+                    tRuntime(`Wood ${Math.round(elementProfile.values.Wood)}, Fire ${Math.round(elementProfile.values.Fire)}`, `木 ${Math.round(elementProfile.values.Wood)}，火 ${Math.round(elementProfile.values.Fire)}`),
+                    tRuntime(`Earth ${Math.round(elementProfile.values.Earth)}, Metal ${Math.round(elementProfile.values.Metal)}, Water ${Math.round(elementProfile.values.Water)}`, `土 ${Math.round(elementProfile.values.Earth)}，金 ${Math.round(elementProfile.values.Metal)}，水 ${Math.round(elementProfile.values.Water)}`),
+                    tRuntime(`Overall balance: ${Math.round(elementOverall)}/100`, `总体平衡：${Math.round(elementOverall)}/100`)
                 ],
-                driver: `Element spread indicates ${elementProfile.strongest[0]} dominates while ${elementProfile.weakest[0]} under-contributes.`,
-                good: `Strongest element is ${elementProfile.strongest[0]} (${Math.round(elementProfile.strongest[1])}); this gives the site a clear energetic anchor.`,
-                missing: `Weakest element is ${elementProfile.weakest[0]} (${Math.round(elementProfile.weakest[1])}); prioritize remedies that strengthen this missing element first.`
+                driver: tRuntime(
+                    `Element spread indicates ${localizeElementName(elementProfile.strongest[0])} dominates while ${localizeElementName(elementProfile.weakest[0])} under-contributes.`,
+                    `元素分布显示 ${localizeElementName(elementProfile.strongest[0])} 偏强，而 ${localizeElementName(elementProfile.weakest[0])} 贡献不足。`
+                ),
+                good: tRuntime(
+                    `Strongest element is ${localizeElementName(elementProfile.strongest[0])} (${Math.round(elementProfile.strongest[1])}), providing a clear energetic anchor.`,
+                    `当前最强元素为 ${localizeElementName(elementProfile.strongest[0])}（${Math.round(elementProfile.strongest[1])}），形成明确能量锚点。`
+                ),
+                missing: tRuntime(
+                    `Weakest element is ${localizeElementName(elementProfile.weakest[0])} (${Math.round(elementProfile.weakest[1])}); prioritize one concrete remedy that lifts it by 8-12 points before tuning other elements.`,
+                    `最弱元素为 ${localizeElementName(elementProfile.weakest[0])}（${Math.round(elementProfile.weakest[1])}）；建议先用一项明确措施将其提升 8-12 分，再细调其他元素。`
+                )
             },
             {
                 id: '4',
-                title: 'Spatial Layout & Orientation',
+                title: tRuntime('Spatial Layout & Orientation', '空间布局与朝向'),
                 score: averageScores([orientationScore, buildingHarmonyScore]),
                 confidence: confidenceFromAnalysis([orientationScore, buildingHarmonyScore]),
-                dataSources: ['Orientation', 'Building Density', 'Road Network'],
+                dataSources: [tRuntime('Orientation', '朝向'), tRuntime('Building Density', '建筑密度'), tRuntime('Road Network', '道路网络')],
                 signals: [
-                    `Orientation score: ${Math.round(orientationScore)}/100`,
-                    `Building harmony: ${Math.round(buildingHarmonyScore)}/100`,
-                    `Composite layout score: ${Math.round(averageScores([orientationScore, buildingHarmonyScore]))}/100`
+                    tRuntime(`Orientation score: ${Math.round(orientationScore)}/100`, `朝向评分：${Math.round(orientationScore)}/100`),
+                    tRuntime(`Building harmony: ${Math.round(buildingHarmonyScore)}/100`, `建筑和谐：${Math.round(buildingHarmonyScore)}/100`),
+                    tRuntime(`Composite layout score: ${Math.round(averageScores([orientationScore, buildingHarmonyScore]))}/100`, `布局综合评分：${Math.round(averageScores([orientationScore, buildingHarmonyScore]))}/100`)
                 ],
                 driver: orientationScore < buildingHarmonyScore
-                    ? 'Directional alignment is the weaker contributor in this layout profile.'
-                    : 'Density/permeability pattern is currently the weaker contributor.',
+                    ? tRuntime(`Directional alignment is weaker by ${Math.abs(Math.round(orientationScore - buildingHarmonyScore))} points.`, `方向一致性较弱，差值为 ${Math.abs(Math.round(orientationScore - buildingHarmonyScore))} 分。`)
+                    : tRuntime(`Density/permeability is weaker by ${Math.abs(Math.round(orientationScore - buildingHarmonyScore))} points.`, `密度/通透性较弱，差值为 ${Math.abs(Math.round(orientationScore - buildingHarmonyScore))} 分。`),
                 good: orientationScore >= 70
-                    ? 'Orientation quality supports stronger positive-energy capture and directional coherence.'
-                    : 'Some orientation strengths exist and can be amplified through layout calibration.',
-                missing: buildingHarmonyScore >= 70
-                    ? 'Keep spatial openness intact and protect key flow corridors from future density pressure.'
-                    : 'Increase permeability and reduce dense blocking mass in circulation-critical zones.'
+                    ? tRuntime(`Orientation quality is strong (${Math.round(orientationScore)}/100), supporting directional coherence and positive-energy capture.`, `朝向质量较强（${Math.round(orientationScore)}/100），有利于方向一致性与正向能量获取。`)
+                    : tRuntime(`Orientation has a baseline (${Math.round(orientationScore)}/100) that can be amplified via layout calibration.`, `朝向具备基础（${Math.round(orientationScore)}/100），可通过布局校准进一步放大。`),
+                missing: buildingHarmonyScore >= 80
+                    ? tRuntime('Keep permeability stable: preserve key flow corridors and avoid adding large blocks on primary approach axes.', '保持通透性稳定：保留关键流线通道，避免在主要进近轴线新增大型阻挡。')
+                    : (buildingHarmonyScore >= 70
+                        ? tRuntime('Target Building Harmony 80+: reduce hard barriers near circulation lines and keep at least two clear approach corridors.', '目标将建筑和谐提升至 80+：减少流线附近硬性阻挡，并保持至少两条清晰进近通道。')
+                        : tRuntime(`Priority fix: raise Building Harmony from ${Math.round(buildingHarmonyScore)} to 75+ by reducing dense blocking mass in circulation-critical zones.`, `优先修复：将建筑和谐从 ${Math.round(buildingHarmonyScore)} 提升至 75+，方法是在关键流线区域减少高密度阻挡体量。`))
             },
             {
                 id: '5',
-                title: 'Environmental Support',
+                title: tRuntime('Environmental Support', '环境支持'),
                 score: averageScores([greenSpaceScore, waterElementScore, environmentScore, spiritualEnergyScore]),
                 confidence: confidenceFromAnalysis([greenSpaceScore, waterElementScore, environmentScore, spiritualEnergyScore]),
-                dataSources: ['DEM', 'NDVI', 'Rivers', 'Environmental Quality'],
+                dataSources: ['DEM', 'NDVI', tRuntime('Rivers', '河流'), tRuntime('Environmental Quality', '环境质量')],
                 signals: [
-                    `Green ${Math.round(greenSpaceScore)}, Water ${Math.round(waterElementScore)}`,
-                    `Environment ${Math.round(environmentScore)}, Spiritual ${Math.round(spiritualEnergyScore)}`,
-                    `Composite support score: ${Math.round(averageScores([greenSpaceScore, waterElementScore, environmentScore, spiritualEnergyScore]))}/100`
+                    tRuntime(`Green ${Math.round(greenSpaceScore)}, Water ${Math.round(waterElementScore)}`, `绿地 ${Math.round(greenSpaceScore)}，水元素 ${Math.round(waterElementScore)}`),
+                    tRuntime(`Environment ${Math.round(environmentScore)}, Spiritual ${Math.round(spiritualEnergyScore)}`, `环境 ${Math.round(environmentScore)}，灵性 ${Math.round(spiritualEnergyScore)}`),
+                    tRuntime(`Composite support score: ${Math.round(averageScores([greenSpaceScore, waterElementScore, environmentScore, spiritualEnergyScore]))}/100`, `环境支持综合评分：${Math.round(averageScores([greenSpaceScore, waterElementScore, environmentScore, spiritualEnergyScore]))}/100`)
                 ],
                 driver: greenSpaceScore < 45 || waterElementScore < 45
-                    ? 'Support weakness is mainly tied to low green-water quality signals.'
-                    : 'Support stability is driven by a relatively balanced ecological baseline.',
+                    ? tRuntime(`Support weakness is tied to low green/water signals (Green ${Math.round(greenSpaceScore)}, Water ${Math.round(waterElementScore)}).`, `支撑短板来自绿地/水元素信号偏低（绿地 ${Math.round(greenSpaceScore)}，水元素 ${Math.round(waterElementScore)}）。`)
+                    : tRuntime(`Support stability is driven by balanced ecological signals (Env ${Math.round(environmentScore)}, Spiritual ${Math.round(spiritualEnergyScore)}).`, `支撑稳定性来自较平衡的生态信号（环境 ${Math.round(environmentScore)}，灵性 ${Math.round(spiritualEnergyScore)}）。`),
                 good: environmentScore >= 70
-                    ? 'Local context provides strong ecological and wellbeing support for stable long-term use.'
-                    : 'Foundational environmental support exists and can be improved with targeted ecological upgrades.',
+                    ? tRuntime(`Environmental support is strong (${Math.round(environmentScore)}/100), suitable for stable long-term use.`, `环境支撑较强（${Math.round(environmentScore)}/100），适合长期稳定使用。`)
+                    : tRuntime(`Environmental support is moderate (${Math.round(environmentScore)}/100) and can improve with targeted upgrades.`, `环境支撑中等（${Math.round(environmentScore)}/100），可通过定向优化提升。`),
                 missing: greenSpaceScore >= 70 && waterElementScore >= 70
-                    ? 'Sustain ecological quality via regular maintenance and long-term stewardship planning.'
-                    : 'Strengthen green-water quality and nearby support amenities to improve environmental backing.'
+                    ? tRuntime('Sustain ecological quality with regular maintenance, drainage checks, and long-term stewardship.', '通过定期维护、排水检查与长期管理来保持生态质量。')
+                    : tRuntime(`Raise ecological backing by improving weaker side first (Green ${Math.round(greenSpaceScore)} / Water ${Math.round(waterElementScore)}).`, `先提升较弱一侧以增强生态支撑（绿地 ${Math.round(greenSpaceScore)} / 水元素 ${Math.round(waterElementScore)}）。`)
             },
             {
                 id: '6',
-                title: 'Accessibility & Infrastructure',
+                title: tRuntime('Accessibility & Infrastructure', '可达性与基础设施'),
                 score: averageScores([roadAccessibilityScore, environmentScore]),
                 confidence: confidenceFromAnalysis([roadAccessibilityScore, environmentScore]),
-                dataSources: ['Road Network', 'Service Environment'],
+                dataSources: [tRuntime('Road Network', '道路网络'), tRuntime('Service Environment', '服务环境')],
                 signals: [
-                    `Road accessibility: ${Math.round(roadAccessibilityScore)}/100`,
-                    `Environmental services: ${Math.round(environmentScore)}/100`,
-                    `Composite access score: ${Math.round(averageScores([roadAccessibilityScore, environmentScore]))}/100`
+                    tRuntime(`Road accessibility: ${Math.round(roadAccessibilityScore)}/100`, `道路可达性：${Math.round(roadAccessibilityScore)}/100`),
+                    tRuntime(`Environmental services: ${Math.round(environmentScore)}/100`, `环境服务：${Math.round(environmentScore)}/100`),
+                    tRuntime(`Composite access score: ${Math.round(averageScores([roadAccessibilityScore, environmentScore]))}/100`, `可达综合评分：${Math.round(averageScores([roadAccessibilityScore, environmentScore]))}/100`)
                 ],
                 driver: roadAccessibilityScore < 50
-                    ? 'Connectivity depth is the primary issue reducing infrastructure performance.'
-                    : 'Access framework is reasonable; service quality is now the main limiter.',
+                    ? tRuntime(`Connectivity depth is the primary issue (Road ${Math.round(roadAccessibilityScore)}/100).`, `连通深度是主要问题（道路 ${Math.round(roadAccessibilityScore)}/100）。`)
+                    : tRuntime(`Access framework is acceptable (Road ${Math.round(roadAccessibilityScore)}/100); service quality is the current limiter.`, `通达框架可用（道路 ${Math.round(roadAccessibilityScore)}/100）；当前限制因素是服务质量。`),
                 good: roadAccessibilityScore >= 70
-                    ? 'Access network supports practical movement and service connectivity with good resilience.'
-                    : 'Core accessibility exists, with room to improve route efficiency and service reach.',
+                    ? tRuntime(`Access network is resilient (${Math.round(roadAccessibilityScore)}/100) and supports practical movement.`, `通达网络韧性较好（${Math.round(roadAccessibilityScore)}/100），可支持实际流动。`)
+                    : tRuntime(`Core accessibility exists (${Math.round(roadAccessibilityScore)}/100) with room to improve route efficiency.`, `基础可达性已具备（${Math.round(roadAccessibilityScore)}/100），但路径效率仍可提升。`),
                 missing: roadAccessibilityScore >= 70
-                    ? 'Monitor congestion pressure and protect circulation quality as demand grows.'
-                    : 'Improve route hierarchy, connectivity quality, and proximity to essential infrastructure.'
+                    ? tRuntime('Monitor congestion growth and protect circulation quality as demand increases.', '随着需求增长，请持续监测拥堵并保护通行质量。')
+                    : tRuntime('Target Road Accessibility 75+: improve route hierarchy, remove choke points, and increase proximity to essential services.', '目标将道路可达性提升至 75+：优化路径层级、消除瓶颈并提升与关键服务点的邻近性。')
             }
         ];
+
+        const sectionActionQueue = [...insightsSections]
+            .sort((a, b) => a.score - b.score)
+            .map(section => `${section.title}: ${section.missing}`);
+
+        const fallbackImprovementPool = improvements.length ? improvements : missingFindings;
+        const combinedImprovementQueue = [
+            ...sectionActionQueue,
+            ...fallbackImprovementPool.filter(item => !sectionActionQueue.includes(item))
+        ];
+
+        const priorityImprovements = combinedImprovementQueue.slice(0, 3);
+        const secondaryImprovements = combinedImprovementQueue.slice(3, 6);
 
         mapInsightsPanel.classList.remove('hidden-state');
         mapInsightsPanel.innerHTML = `
             <div class="insights-header">
-                <h3 style="color: #000000;">Feng Shui AI Insights</h3>
-                <p style="color: #000000;">Model-guided interpretation of six core factors, including score evidence, strengths, and prioritized correction points.</p>
+                <h3 style="color: #000000;">${tRuntime('Feng Shui AI Insights', '风水AI洞察')}</h3>
+                <p style="color: #000000;">${tRuntime('Model-guided interpretation of six core factors, including score evidence, strengths, and prioritized correction points.', '基于模型对六个核心因素进行解读，包含评分证据、优势项与优先修正点。')}</p>
             </div>
 
             <div class="insights-topic-grid">
@@ -2437,8 +2646,8 @@ function displayResults(data) {
                             </div>
 
                             <div class="insight-block">
-                                <p class="insight-meta" style="color: #000000;"><strong>Confidence:</strong> ${section.confidence}</p>
-                                <p class="insight-meta" style="color: #000000;"><strong>Data sources:</strong> ${section.dataSources.join(' • ')}</p>
+                                <p class="insight-meta" style="color: #000000;"><strong>${labels.confidence}:</strong> ${section.confidence}</p>
+                                <p class="insight-meta" style="color: #000000;"><strong>${labels.dataSources}:</strong> ${section.dataSources.join(' • ')}</p>
                                 <p class="insight-meta" style="color: #000000;">${section.driver}</p>
                                 <ul class="insight-mini-list">
                                     ${section.signals.map(signal => `<li style="color: #000000;">${signal}</li>`).join('')}
@@ -2446,12 +2655,12 @@ function displayResults(data) {
                             </div>
 
                             <div class="insight-block">
-                                <h5 style="color: #000000;">What Is Already Good</h5>
+                                <h5 style="color: #000000;">${labels.whatGood}</h5>
                                 <p style="color: #000000;">${section.good}</p>
                             </div>
 
                             <div class="insight-block">
-                                <h5 style="color: #000000;">What Needs Improvement</h5>
+                                <h5 style="color: #000000;">${labels.whatNeed}</h5>
                                 <p style="color: #000000;">${section.missing}</p>
                             </div>
                         </article>
@@ -2460,18 +2669,18 @@ function displayResults(data) {
             </div>
 
             <section class="insight-improvement-card">
-                <h4>How to Improve</h4>
+                <h4>${labels.improveTitle}</h4>
                 <div class="insight-improve-grid">
                     <div>
-                        <h5>Priority Actions (Now)</h5>
+                        <h5>${labels.priorityNow}</h5>
                         <ul class="findings-list">
-                            ${(priorityImprovements.length ? priorityImprovements : ['No immediate priority action identified yet.']).map(item => `<li>${item}</li>`).join('')}
+                            ${(priorityImprovements.length ? priorityImprovements : [tRuntime('No immediate priority action identified yet.', '暂无需要立即执行的优先动作。')]).map(item => `<li>${item}</li>`).join('')}
                         </ul>
                     </div>
                     <div>
-                        <h5>Next Actions (Planned)</h5>
+                        <h5>${labels.nextPlanned}</h5>
                         <ul class="findings-list">
-                            ${(secondaryImprovements.length ? secondaryImprovements : ['No additional action queued yet.']).map(item => `<li>${item}</li>`).join('')}
+                            ${(secondaryImprovements.length ? secondaryImprovements : [tRuntime('No additional action queued yet.', '暂无后续待执行动作。')]).map(item => `<li>${item}</li>`).join('')}
                         </ul>
                     </div>
                 </div>
@@ -2537,14 +2746,32 @@ function getScoreClass(score) {
 
 // Helper function to get score description
 function getScoreDescription(score) {
-    if (score >= 80) return 'Excellent environmental balance with strong performance.';
-    if (score >= 60) return 'Balanced condition with moderate optimization opportunities.';
-    if (score >= 40) return 'Mixed condition that requires targeted improvements.';
-    return 'Low condition score; comprehensive intervention is recommended.';
+    if (score >= 80) return tRuntime('Excellent environmental balance with strong performance.', '环境平衡优秀，整体表现强。');
+    if (score >= 60) return tRuntime('Balanced condition with moderate optimization opportunities.', '整体较平衡，仍有中等优化空间。');
+    if (score >= 40) return tRuntime('Mixed condition that requires targeted improvements.', '状态混合，需进行针对性改善。');
+    return tRuntime('Low condition score; comprehensive intervention is recommended.', '评分较低，建议进行系统性干预。');
 }
 
 // Helper function to format category names
 function formatCategoryName(category) {
+    const localized = {
+        green_space: tRuntime('Green Space', '绿地空间'),
+        water_element: tRuntime('Water Element', '水元素'),
+        building_harmony: tRuntime('Building Harmony', '建筑和谐'),
+        road_accessibility: tRuntime('Road Accessibility', '道路可达性'),
+        orientation: tRuntime('Orientation', '朝向'),
+        environment: tRuntime('Environment', '环境支持'),
+        spiritual_energy: tRuntime('Spiritual Energy', '灵性能量'),
+        yin_yang_balance: tRuntime('Yin-Yang Balance', '阴阳平衡'),
+        five_elements: tRuntime('Five Elements', '五行'),
+        five_elements_harmony: tRuntime('Five Elements Harmony', '五行和谐'),
+        qi_flow: tRuntime('Qi Flow', '气流')
+    };
+
+    if (localized[category]) {
+        return localized[category];
+    }
+
     return category
         .split('_')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))

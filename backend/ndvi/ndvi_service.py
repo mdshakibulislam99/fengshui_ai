@@ -3,10 +3,13 @@
 
 import os
 import logging
-import ee
+try:
+    import ee
+except ImportError:
+    ee = None
 import requests
 from functools import lru_cache
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict
 
 from .config import NDVIConfig
@@ -41,6 +44,9 @@ class NDVIService:
     
     def _authenticate_gee(self):
         """Authenticate with Google Earth Engine."""
+        if ee is None:
+            logger.warning("ee module not available - Sentinel-2 NDVI unavailable")
+            return
         if not self.service_account_path or not os.path.exists(self.service_account_path):
             logger.warning("GEE service account not found - Sentinel-2 NDVI unavailable")
             return
@@ -218,7 +224,7 @@ class NDVIService:
                 'assets': 'Landsat_8_Collection_2_L2'
             }
             
-            response = requests.get(url, params=params, timeout=30)
+            response = requests.get(url, params=params, timeout=10)
             
             if response.status_code == 200:
                 logger.info(f"✓ Landsat imagery retrieved")
@@ -251,9 +257,86 @@ class NDVIService:
                 'source': 'NASA Landsat'
             }
     
+    @lru_cache(maxsize=64)
+    def _get_ndvi_modis_ornl(self, lon: float, lat: float) -> dict:
+        """
+        Get NDVI from MODIS MOD13A1 via ORNL DAAC REST API.
+        Completely free, no API key or authentication required.
+        Returns real 500m-resolution NDVI values, 16-day composites.
+        https://modis.ornl.gov/rst/ui/
+        """
+        try:
+            # Use peak-summer of last full year — only 2 MODIS composites (fast response)
+            year = datetime.now().year - 1
+            # DOY 161 = Jun 9, DOY 177 = Jun 25 → 2 peak-green composites
+            url = 'https://modis.ornl.gov/rst/api/v1/MOD13Q1/subset'
+            params = {
+                'latitude': lat,
+                'longitude': lon,
+                'startDate': f'A{year}161',
+                'endDate': f'A{year}177',
+                'kmAboveBelow': 0,
+                'kmLeftRight': 0,
+            }
+            response = requests.get(url, params=params, timeout=10)
+            if response.status_code != 200:
+                logger.warning(f"⚠ MODIS ORNL API error: {response.status_code}")
+                return {'success': False, 'error': f'MODIS ORNL API {response.status_code}'}
+
+            data = response.json()
+            subsets = data.get('subset', [])
+
+            ndvi_values = []
+            for subset in subsets:
+                if subset.get('band') == '250m_16_days_NDVI':
+                    # scale is 0.0001 per MODIS MOD13Q1 specification
+                    raw_scale = subset.get('scale')
+                    scale = float(raw_scale) if raw_scale is not None else 0.0001
+                    fill_value = int(subset.get('fill_value', -3000))
+                    for raw in subset.get('data', []):
+                        if raw != fill_value and raw > -2000:
+                            ndvi_val = raw * scale
+                            if -1.0 <= ndvi_val <= 1.0:
+                                ndvi_values.append(ndvi_val)
+
+            if not ndvi_values:
+                return {'success': False, 'error': 'No valid MODIS NDVI pixels at location'}
+
+            ndvi = float(sum(ndvi_values) / len(ndvi_values))
+
+            if ndvi < 0:
+                category, coverage = 'water', 0.0
+            elif ndvi < 0.2:
+                category, coverage = 'bare', 0.0
+            elif ndvi < 0.4:
+                category, coverage = 'sparse', (ndvi - 0.2) / 0.2
+            elif ndvi < 0.6:
+                category, coverage = 'moderate', 0.5 + (ndvi - 0.4) / 0.2 * 0.3
+            else:
+                category, coverage = 'dense', min(1.0, 0.8 + (ndvi - 0.6) / 0.4 * 0.2)
+
+            logger.info(f"✓ NDVI from MODIS ORNL: {ndvi:.3f} ({category})")
+            return {
+                'ndvi_value': ndvi,
+                'ndvi_category': category,
+                'vegetation_coverage': float(coverage),
+                'area_stats': {
+                    'mean_ndvi': ndvi,
+                    'stddev_ndvi': 0.05,  # single-pixel, no spatial variance
+                    'min_ndvi': float(min(ndvi_values)),
+                    'max_ndvi': float(max(ndvi_values)),
+                },
+                'success': True,
+                'source': 'MODIS MOD13Q1 250m (free, ORNL DAAC)'
+            }
+        except Exception as e:
+            logger.warning(f"⚠ MODIS ORNL error: {e}")
+            return {'success': False, 'error': str(e)}
+
     def get_ndvi(self, lon: float, lat: float, radius_m: int = 1000) -> dict:
         """
-        Get NDVI with automatic fallback (Sentinel-2 → Landsat).
+        Get NDVI with automatic fallback.
+        Priority: MODIS ORNL (free, works everywhere) → Sentinel-2 (GEE) → Landsat.
         
         Args:
             lon: Longitude
@@ -263,13 +346,18 @@ class NDVIService:
         Returns:
             dict with NDVI data
         """
-        # Try Sentinel-2 first (higher resolution)
+        # Try MODIS first (free, no auth, works in China)
+        modis_result = self._get_ndvi_modis_ornl(lon, lat)
+        if modis_result.get('success'):
+            return modis_result
+
+        # Fallback: Sentinel-2 via GEE (higher resolution but needs GEE)
         if self._gee_authenticated:
             result = self.get_sentinel2_ndvi(lon, lat, radius_m)
             if result['success']:
                 return result
-        
-        # Fall back to Landsat
+
+        # Last resort: Landsat via NASA API
         return self.get_landsat_ndvi(lon, lat)
     
     def get_vegetation_quality_score(self, lon: float, lat: float, radius_m: int = 1000) -> dict:
@@ -341,7 +429,3 @@ class NDVIService:
             'ndvi_data': ndvi_result,
             'success': True
         }
-
-
-# Create singleton instance
-ndvi_service = NDVIService()

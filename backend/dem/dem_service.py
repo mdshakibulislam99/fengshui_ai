@@ -1,11 +1,17 @@
-# dem_service.py - DEM Service with OpenTopography (Primary) and Google Earth Engine (Fallback)
+# dem_service.py - DEM Service with OpenTopography (Primary), Google Earth Engine (Fallback),
+# and Open-Elevation (Free fallback - no API key required)
 
 import os
 import json
 import logging
+import math
+import numpy as np
 from pathlib import Path
 import requests
-import ee
+try:
+    import ee
+except ImportError:
+    ee = None
 from functools import lru_cache
 
 logger = logging.getLogger(__name__)
@@ -41,6 +47,9 @@ class DEMService:
     
     def _authenticate(self):
         """Authenticate with Google Earth Engine using service account."""
+        if ee is None:
+            logger.warning("ee module not available - GEE fallback disabled")
+            return
         if not os.path.exists(self.service_account_path):
             logger.warning(f"Service account file not found: {self.service_account_path}")
             return
@@ -155,6 +164,93 @@ class DEMService:
             logger.warning(f"⚠ OpenTopography error: {e}")
             return {'success': False, 'error': str(e)}
     
+    def _get_elevation_open_elevation(self, lat: float, lon: float) -> dict:
+        """
+        Get elevation from Open-Elevation API (free, no API key required).
+        Uses SRTM 30m data globally. https://open-elevation.com
+        """
+        try:
+            url = 'https://api.open-elevation.com/api/v1/lookup'
+            response = requests.post(
+                url,
+                json={'locations': [{'latitude': lat, 'longitude': lon}]},
+                timeout=10
+            )
+            if response.status_code == 200:
+                results = response.json().get('results', [])
+                if results and results[0].get('elevation') is not None:
+                    elevation = float(results[0]['elevation'])
+                    logger.info(f"✓ Elevation from Open-Elevation: {elevation}m")
+                    return {
+                        'elevation_m': elevation,
+                        'success': True,
+                        'source': 'Open-Elevation SRTM 30m (free)'
+                    }
+            return {'success': False, 'error': f'Open-Elevation API returned {response.status_code}'}
+        except Exception as e:
+            logger.warning(f"⚠ Open-Elevation error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    def _get_terrain_metrics_open_elevation(self, lat: float, lon: float, radius_m: int = 500) -> dict:
+        """
+        Compute terrain metrics (slope, aspect, ruggedness) from a 3x3 grid of
+        Open-Elevation samples. No API key required.
+        """
+        try:
+            # Convert radius to degrees
+            lat_rad = math.radians(lat)
+            dlat = (radius_m / 2) / 111320
+            dlon = (radius_m / 2) / (111320 * math.cos(lat_rad))
+            step_m = radius_m / 2  # metres between grid points
+
+            locations = [
+                {'latitude': lat + dy * dlat, 'longitude': lon + dx * dlon}
+                for dy in [-1, 0, 1]
+                for dx in [-1, 0, 1]
+            ]
+
+            url = 'https://api.open-elevation.com/api/v1/lookup'
+            response = requests.post(url, json={'locations': locations}, timeout=15)
+            if response.status_code != 200:
+                return {'success': False, 'error': f'Open-Elevation error {response.status_code}'}
+
+            results = response.json().get('results', [])
+            if len(results) < 9:
+                return {'success': False, 'error': 'Insufficient elevation grid data'}
+
+            elev_grid = np.array(
+                [r.get('elevation', 0) for r in results], dtype=float
+            ).reshape(3, 3)
+
+            center_elevation = float(elev_grid[1, 1])
+            elevation_std = float(np.std(elev_grid))
+
+            # Gradient in m/m (elevation change per metre of horizontal distance)
+            gy, gx = np.gradient(elev_grid, step_m, step_m)
+            cx, cy = float(gx[1, 1]), float(gy[1, 1])
+
+            slope_rad = math.atan(math.sqrt(cx ** 2 + cy ** 2))
+            slope_degrees = math.degrees(slope_rad)
+
+            # Aspect: 0=N, 90=E, 180=S, 270=W
+            aspect_degrees = (math.degrees(math.atan2(cx, -cy)) + 360) % 360
+
+            logger.info(
+                f"✓ Terrain metrics from Open-Elevation: elev={center_elevation}m "
+                f"slope={slope_degrees:.1f}° aspect={aspect_degrees:.1f}°"
+            )
+            return {
+                'elevation_m': center_elevation,
+                'slope_degrees': slope_degrees,
+                'aspect_degrees': aspect_degrees,
+                'elevation_std': elevation_std,
+                'success': True,
+                'source': 'Open-Elevation SRTM 30m - terrain grid (free)'
+            }
+        except Exception as e:
+            logger.warning(f"⚠ Open-Elevation terrain metrics error: {e}")
+            return {'success': False, 'error': str(e)}
+
     @lru_cache(maxsize=128)
     def get_elevation(self, lon: float, lat: float) -> dict:
         """
@@ -186,9 +282,15 @@ class DEMService:
             error = result.get('error', 'Unknown error')
             logger.warning(f"OpenTopography failed: {error}. Falling back to GEE...")
         
-        # Fallback to Google Earth Engine
+        # Fallback to Open-Elevation (free, no key required)
+        logger.info(f"Trying Open-Elevation free API for ({lon}, {lat})...")
+        oe_result = self._get_elevation_open_elevation(lat, lon)
+        if oe_result.get('success'):
+            return oe_result
+
+        # Last resort: Google Earth Engine
         if not self._authenticated:
-            logger.error("Both OpenTopography and GEE unavailable")
+            logger.error("All DEM sources (OpenTopography, Open-Elevation, GEE) unavailable")
             return {
                 'elevation_m': None,
                 'success': False,
@@ -236,6 +338,7 @@ class DEMService:
                 'used_fallback': True
             }
     
+    @lru_cache(maxsize=128)
     def get_terrain_metrics(self, lon: float, lat: float, radius_m: int = 500) -> dict:
         """
         Get comprehensive terrain metrics for Feng Shui analysis.
@@ -259,16 +362,9 @@ class DEMService:
             }
         """
         if not self._authenticated:
-            logger.error("GEE not available for terrain metrics analysis")
-            return {
-                'elevation_m': None,
-                'slope_degrees': None,
-                'aspect_degrees': None,
-                'elevation_std': None,
-                'success': False,
-                'error': 'GEE not available for terrain analysis',
-                'source': 'None'
-            }
+            # Use Open-Elevation free API for terrain metrics
+            logger.info(f"GEE unavailable - using Open-Elevation grid for terrain metrics at ({lon}, {lat})")
+            return self._get_terrain_metrics_open_elevation(lat, lon, radius_m)
         
         try:
             logger.info(f"Using GEE for terrain metrics at ({lon}, {lat})...")
@@ -334,6 +430,7 @@ class DEMService:
                 'source': 'GEE SRTM 30m'
             }
     
+    @lru_cache(maxsize=128)
     def get_topography_score(self, lon: float, lat: float, radius_m: int = 500) -> dict:
         """
         Convert terrain metrics to Feng Shui topography score (0-100).
