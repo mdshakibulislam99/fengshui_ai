@@ -455,42 +455,58 @@ def _prewarm_cache(latitude: float, longitude: float, radius: int = 500, locatio
 def _run_analysis(latitude, longitude, radius, location_context=None):
     """Run the full analysis pipeline with parallel data fetching.
 
-    All data sources (DEM, NDVI, Wind, POI, River, Flood) are fetched in parallel
-    instead of sequentially. This reduces total analysis time by 3-5x.
-    
-    Old sequential: 27.4s (84% data fetch)
-    New parallel: 5-8s (max of all parallel requests)
+    All data sources are fetched in parallel using ThreadPoolExecutor.
+    Single unified parallel fetch replaces old sequential approach.
     """
-    from parallel_data_fetcher import parallel_fetch_all_data
-    
     pipeline_start = time.monotonic()
     
-    # 🚀 PARALLEL FETCH ALL DATA AT ONCE
-    # Fetches DEM, NDVI, Wind, Water POI, Buildings POI, River, Flood in parallel
-    parallel_data = parallel_fetch_all_data(
-        longitude=longitude,
-        latitude=latitude,
-        radius=radius,
-        dem_service=dem_service,
-        ndvi_service=ndvi_service,
-        wind_service=wind_service,
-        hydrosheds_service=hydrosheds_service,
-        search_nearby_pois_func=search_nearby_pois,
-        flood_service=flood_service,
-        buildings_service=buildings_service,
-        max_workers=7
-    )
-    
-    # Also fetch AMap POI and road data (separate from parallel batch)
+    # 🚀 PARALLEL FETCH - All services at once
+    # POI, Roads, DEM, NDVI, Wind, River, Flood run simultaneously
     from concurrent.futures import ThreadPoolExecutor
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        f_poi  = pool.submit(search_nearby_pois, longitude, latitude, radius)
-        f_road = pool.submit(get_road_network_data, longitude, latitude, radius)
-        poi_data  = f_poi.result()
-        road_data = f_road.result()
+    from concurrent.futures import as_completed
+    
+    # Define all fetch tasks with their methods and arguments
+    fetch_tasks = []
+    
+    if True:  # POI
+        fetch_tasks.append(('poi', search_nearby_pois, (longitude, latitude, radius)))
+    if True:  # Roads
+        fetch_tasks.append(('road', get_road_network_data, (longitude, latitude, radius)))
+    if dem_service:
+        fetch_tasks.append(('dem', dem_service.get_topography_score, (longitude, latitude, radius)))
+    if ndvi_service:
+        fetch_tasks.append(('ndvi', ndvi_service.get_ndvi, (longitude, latitude, radius)))
+    if wind_service:
+        fetch_tasks.append(('wind', wind_service.get_wind_analysis, (longitude, latitude, radius)))
+    if hydrosheds_service:
+        fetch_tasks.append(('river', hydrosheds_service.get_river_proximity_score, (longitude, latitude, radius)))
+    if flood_service:
+        fetch_tasks.append(('flood', flood_service.get_flood_risk_analysis, (longitude, latitude, radius)))
+    
+    results = {}
+    with ThreadPoolExecutor(max_workers=7) as pool:
+        futures = {}
+        
+        # Submit all tasks immediately (they run in parallel)
+        for key, func, args in fetch_tasks:
+            futures[pool.submit(func, *args)] = key
+        
+        # Collect results as they complete
+        for future in as_completed(futures):
+            key = futures[future]
+            try:
+                results[key] = future.result()
+                logger.info(f"✓ {key.upper()} result collected")
+            except Exception as e:
+                logger.warning(f"⚠ {key.upper()} fetch failed: {e}")
+                results[key] = {}
     
     data_fetch_ms = round((time.monotonic() - pipeline_start) * 1000)
 
+    # Extract results (use defaults if missing)
+    poi_data = results.get('poi', {})
+    road_data = results.get('road', {})
+    
     features_start = time.monotonic()
     features = extract_features(
         poi_data,
