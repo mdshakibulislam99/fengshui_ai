@@ -224,7 +224,7 @@ class NDVIService:
                 'assets': 'Landsat_8_Collection_2_L2'
             }
             
-            response = requests.get(url, params=params, timeout=10)
+            response = requests.get(url, params=params, timeout=5)
             
             if response.status_code == 200:
                 logger.info(f"✓ Landsat imagery retrieved")
@@ -257,7 +257,7 @@ class NDVIService:
                 'source': 'NASA Landsat'
             }
     
-    @lru_cache(maxsize=64)
+    @lru_cache(maxsize=512)  # Increased from 64 to handle more unique locations
     def _get_ndvi_modis_ornl(self, lon: float, lat: float) -> dict:
         """
         Get NDVI from MODIS MOD13A1 via ORNL DAAC REST API.
@@ -278,7 +278,8 @@ class NDVIService:
                 'kmAboveBelow': 0,
                 'kmLeftRight': 0,
             }
-            response = requests.get(url, params=params, timeout=10)
+            # Reduced timeout from 10s to 5s to fail fast if ORNL is slow
+            response = requests.get(url, params=params, timeout=5)
             if response.status_code != 200:
                 logger.warning(f"⚠ MODIS ORNL API error: {response.status_code}")
                 return {'success': False, 'error': f'MODIS ORNL API {response.status_code}'}
@@ -336,7 +337,8 @@ class NDVIService:
     def get_ndvi(self, lon: float, lat: float, radius_m: int = 1000) -> dict:
         """
         Get NDVI with automatic fallback.
-        Priority: MODIS ORNL (free, works everywhere) → Sentinel-2 (GEE) → Landsat.
+        Priority: MODIS ORNL (free, fast, 500m resolution) → Landsat (NASA API).
+        Sentinel-2 GEE disabled due to latency concerns — use MODIS for production.
         
         Args:
             lon: Longitude
@@ -346,18 +348,13 @@ class NDVIService:
         Returns:
             dict with NDVI data
         """
-        # Try MODIS first (free, no auth, works in China)
+        # Try MODIS first (free, no auth, works everywhere, fast ~1-2s)
         modis_result = self._get_ndvi_modis_ornl(lon, lat)
         if modis_result.get('success'):
             return modis_result
 
-        # Fallback: Sentinel-2 via GEE (higher resolution but needs GEE)
-        if self._gee_authenticated:
-            result = self.get_sentinel2_ndvi(lon, lat, radius_m)
-            if result['success']:
-                return result
-
-        # Last resort: Landsat via NASA API
+        # Last resort: Landsat via NASA API (if MODIS fails)
+        # Sentinel-2 via GEE SKIPPED — too slow for production (15-20s latency)
         return self.get_landsat_ndvi(lon, lat)
     
     def get_vegetation_quality_score(self, lon: float, lat: float, radius_m: int = 1000) -> dict:

@@ -60,12 +60,15 @@ from dem import DEMService
 from dem.config import DEMConfig
 from Hydroshed import HydroSHEDSService
 from Hydroshed.config import HydroSHEDSConfig
+from Hydroshed.china_river_service import ChinaRiverService
 from buildings_data import BuildingsService
 from buildings_data.config import BuildingsConfig
 from wind import ERA5WindService
 from wind.config import WindConfig
+from wind.cma_wind_service import CMAWindService
 from flood import GEEFloodService
 from flood.config import FloodConfig
+from flood.local_flood_service import LocalFloodService
 from ndvi import NDVIService
 from ndvi.config import NDVIConfig
 from indoor_analyzer import analyze_room_design, analyze_room_photos
@@ -164,17 +167,16 @@ if DEMConfig.GEE_ENABLE_DEM:
         logger.warning("  Proceeding without DEM data - topography scores unavailable")
         dem_service = None
 
-# Initialize HydroSHEDS service for river flow analysis
+# Initialize River Service for river flow analysis
+# Using China's native river network database instead of GEE
 hydrosheds_service = None
 if HydroSHEDSConfig.HYDROSHEDS_ENABLE:
     try:
-        hydrosheds_service = HydroSHEDSService(
-            HydroSHEDSConfig.HYDROSHEDS_GEE_SERVICE_ACCOUNT_PATH
-        )
-        logger.info("✓ HydroSHEDS service initialized successfully (GEE river analysis)")
+        hydrosheds_service = ChinaRiverService()
+        logger.info("✓ River service initialized successfully (China National River Network)") 
     except Exception as e:
-        logger.warning(f"⚠ HydroSHEDS service initialization failed: {e}")
-        logger.warning("  Proceeding without HydroSHEDS data - river analysis unavailable")
+        logger.warning(f"⚠ River service initialization failed: {e}")
+        logger.warning("  Proceeding without river data - river analysis unavailable")
         hydrosheds_service = None
 
 # Initialize Buildings Data service for 3D building analysis
@@ -188,23 +190,25 @@ if BuildingsConfig.BUILDINGS_ENABLE:
         logger.warning("  Proceeding without Buildings data - building harmony scores unavailable")
         buildings_service = None
 
-# Initialize ERA5 Wind service for wind pattern analysis
+# Initialize Wind service for wind pattern analysis
+# Using China Meteorological Administration (CMA) data instead of GEE
 wind_service = None
 if WindConfig.WIND_ENABLE:
     try:
-        wind_service = ERA5WindService(WindConfig.GEE_SERVICE_ACCOUNT_PATH)
-        logger.info("✓ ERA5 Wind service initialized successfully (GEE wind analysis)")
+        wind_service = CMAWindService()
+        logger.info("✓ Wind service initialized successfully (China Meteorological Administration)")
     except Exception as e:
         logger.warning(f"⚠ Wind service initialization failed: {e}")
         logger.warning("  Proceeding without Wind data - wind analysis unavailable")
         wind_service = None
 
-# Initialize Flood service for GEE-based flood risk analysis
+# Initialize Flood service for flood risk analysis  
+# Using local computation (DEM slope + CMA rainfall) instead of GEE
 flood_service = None
 if FloodConfig.FLOOD_ENABLE:
     try:
-        flood_service = GEEFloodService(FloodConfig.GEE_SERVICE_ACCOUNT_PATH)
-        logger.info("✓ Flood service initialized successfully (GEE flood analysis)")
+        flood_service = LocalFloodService()
+        logger.info("✓ Flood service initialized successfully (Local computation - no GEE)")
     except Exception as e:
         logger.warning(f"⚠ Flood service initialization failed: {e}")
         logger.warning("  Proceeding without Flood data - flood risk analysis unavailable")
@@ -218,6 +222,7 @@ if NDVIConfig.NDVI_ENABLE:
             service_account_path=NDVIConfig.GEE_SERVICE_ACCOUNT_PATH,
             nasa_api_key=NDVIConfig.NASA_API_KEY
         )
+        logger.info("✓ GEE authenticated for NDVI analysis")
         logger.info("✓ NDVI service initialized (Sentinel-2 + MODIS free fallback)")
     except Exception as e:
         logger.warning(f"⚠ NDVI service initialization failed: {e}")

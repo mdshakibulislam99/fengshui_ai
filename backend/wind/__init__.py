@@ -3,5 +3,6 @@
 # Integrated with Feng Shui analysis for wind flow and exposure scoring
 
 from .era5_service import ERA5WindService
+from .cma_wind_service import CMAWindService
 
-__all__ = ['ERA5WindService']
+__all__ = ['ERA5WindService', 'CMAWindService']

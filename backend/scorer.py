@@ -801,16 +801,29 @@ def calculate_feng_shui_score(features: Dict, location_context: Optional[Dict] =
 def calculate_green_space_score(features: Dict) -> float:
     """Calculate green space category score (0-100)."""
     ratio = _clamp01(features.get('green_area_ratio', 0.0))
+    ndvi_coverage = features.get('ndvi_vegetation_coverage', None)
     density = _clamp01(features.get('building_density', 0.0))
     topography = _clamp01(features.get('topography_score', 0.5))
     rural_factor = _rural_context_factor(features)
 
-    # Urban signal from explicit park POIs.
-    urban_score = min(ratio / 0.30 * 100.0, 100.0)
+    # NDVI available: use satellite data (most accurate)
+    if ndvi_coverage is not None:
+        # Satellite vegetation is ground truth
+        satellite_score = float(ndvi_coverage) * 100.0
+        return max(0.0, min(satellite_score, 100.0))
+
+    # NDVI unavailable: standard fallback
+    if ratio > 0.05:
+        urban_score = min(ratio / 0.30 * 100.0, 100.0)
+    else:
+        openness_score = (1.0 - density) * 100.0
+        topology_bonus = topography * 30.0
+        urban_score = openness_score * 0.60 + topology_bonus * 0.40
+    
     # Rural proxy: openness + terrain quality.
     natural_proxy = ((1.0 - density) * 0.60 + topography * 0.40) * 100.0
 
-    score = urban_score * (1.0 - rural_factor) + max(urban_score, natural_proxy) * rural_factor
+    score = max(urban_score, natural_proxy) * 0.70 + min(urban_score, natural_proxy) * 0.30
     return max(0.0, min(score, 100.0))
 
 
@@ -823,6 +836,7 @@ def calculate_water_score(features: Dict) -> float:
     - Auspicious orientation (朝阳水)
     - Water flow characteristics
     - Traditional mountain-water relationship
+    - Smart fallback when satellite/POI data unavailable
     """
     proximity = _clamp01(features.get('water_proximity', 0.0))
     hydrosheds_river = _clamp01(features.get('hydrosheds_river_proximity', 0.5))
@@ -840,11 +854,11 @@ def calculate_water_score(features: Dict) -> float:
     
     # Blend AMap water POIs with HydroSHEDS river network signal
     flood_safety = 1 - min(max(flood_risk, 0.0), 1.0)
+    
     urban_combined = proximity * 0.50 + hydrosheds_river * 0.30 + flood_safety * 0.20
     rural_combined = hydrosheds_river * 0.55 + flood_safety * 0.25 + topography * 0.20
 
-    base_water_score = (urban_combined * (1.0 - rural_factor) + 
-                       max(urban_combined, rural_combined) * rural_factor)
+    base_water_score = max(urban_combined, rural_combined) * 0.70 + min(urban_combined, rural_combined) * 0.30
     
     # Apply water quality enhancement (TIER 1)
     quality_boost = water_quality * 0.15  # 15% boost for premium quality
@@ -1147,6 +1161,9 @@ def calculate_yin_yang_balance(features: Dict, category_scores: Dict) -> float:
     
     Perfect balance = 100, complete imbalance = 0
     
+    Smart fallback: When satellite data (NDVI/HydroSHEDS) is unavailable,
+    estimate Yin presence from density/topography to avoid artificial imbalance.
+    
     Args:
         features: Extracted features
         category_scores: Category scores
@@ -1154,10 +1171,13 @@ def calculate_yin_yang_balance(features: Dict, category_scores: Dict) -> float:
     Returns:
         Yin-Yang balance score (0-100)
     """
+    green = _clamp01(features.get('green_area_ratio', 0.0))
+    water = _clamp01(features.get('water_proximity', 0.0))
+    
     # Yin score (calm, natural elements)
     yin_score = (
-        _clamp01(features.get('green_area_ratio', 0.0)) * 0.30 +
-        _clamp01(features.get('water_proximity', 0.0)) * 0.30 +
+        green * 0.30 +
+        water * 0.30 +
         _clamp01(features.get('spiritual_presence', 0.0)) * 0.15 +
         _clamp01(features.get('topography_score', 0.5)) * 0.25
     )
