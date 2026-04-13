@@ -108,6 +108,20 @@ async function initializeApp() {
         setupEventListeners();
         setupPolygonDrawing();
         console.log('✅ Feng Shui Analysis System initialized');
+        
+        // 💾 Restore cached analysis if available on page load
+        setTimeout(() => {
+            const cached = restoreCachedAnalysis();
+            if (cached && cached.data) {
+                console.log('📂 Restoring cached analysis...');
+                displayResults(cached.data);
+                // Optionally scroll to results
+                const dashboard = document.getElementById('dashboard');
+                if (dashboard) {
+                    dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+        }, 500);
     } catch (error) {
         console.error('❌ Initialization error:', error);
         // Do NOT call displayError here — the user hasn't clicked Analyze yet.
@@ -1630,6 +1644,9 @@ async function fetchLocationAnalysis() {
             radius: radius,
             address: selectedSnapshot.address
         };
+        
+        // 💾 Save to localStorage so results persist after page refresh
+        saveAnalysisToCache('location', data.data);
     }
 
     return data.data;
@@ -1677,6 +1694,11 @@ async function fetchPolygonAnalysis() {
 
     if (!data.success) {
         throw new Error(data.error || 'Polygon analysis failed');
+    }
+
+    // 💾 Save to localStorage so results persist after page refresh
+    if (data.data) {
+        saveAnalysisToCache('polygon', data.data);
     }
 
     return data.data;
@@ -2130,6 +2152,84 @@ function buildActionButtons() {
     `;
 }
 
+// ==================== 💾 ANALYSIS CACHE MANAGEMENT ====================
+
+/**
+ * Save analysis result to localStorage so it persists across page refreshes
+ */
+function saveAnalysisToCache(type, data) {
+    try {
+        const cacheEntry = {
+            type: type,
+            data: data,
+            timestamp: Date.now(),
+            timestampStr: new Date().toLocaleString()
+        };
+        localStorage.setItem('latestAnalysisResult', JSON.stringify(cacheEntry));
+        console.log(`✅ Analysis cached (${type}):`, cacheEntry.timestampStr);
+    } catch (error) {
+        console.warn('⚠️ Failed to save analysis cache:', error);
+    }
+}
+
+/**
+ * Load cached analysis from localStorage and restore it to the page
+ * Called on page load to show last analyzed location
+ */
+function restoreCachedAnalysis() {
+    try {
+        const cached = localStorage.getItem('latestAnalysisResult');
+        if (!cached) return null;
+        
+        const cacheEntry = JSON.parse(cached);
+        const minutesAgo = Math.floor((Date.now() - cacheEntry.timestamp) / 60000);
+        
+        console.log(`📂 Found cached ${cacheEntry.type} analysis from ${minutesAgo} minutes ago`);
+        
+        // Add cache info to the data
+        if (cacheEntry.data) {
+            cacheEntry.data._cache_info = {
+                cached_at: cacheEntry.timestampStr,
+                minutes_ago: minutesAgo,
+                from_cache: true
+            };
+        }
+        
+        return cacheEntry;
+    } catch (error) {
+        console.warn('⚠️ Failed to load analysis cache:', error);
+        return null;
+    }
+}
+
+/**
+ * Display cache info banner at top of results
+ */
+function getCacheInfoBanner(cacheInfo) {
+    if (!cacheInfo || !cacheInfo.from_cache) return '';
+    
+    let timeStr = cacheInfo.minutes_ago < 1 
+        ? 'just now' 
+        : cacheInfo.minutes_ago === 1 
+        ? '1 minute ago'
+        : `${cacheInfo.minutes_ago} minutes ago`;
+    
+    return `
+        <div class="cache-info-banner" style="
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #1976d2;
+        ">
+            💾 <strong>Cached Result</strong> — Last analyzed ${timeStr}. 
+            <a href="#" onclick="analyzeSelection(); return false;" style="color: #1976d2; text-decoration: underline;">Re-analyze</a> to get fresh data.
+        </div>
+    `;
+}
+
 function displayResults(data) {
     _stopLoadingProgress();
     setAnalyzingLayout(false);
@@ -2250,6 +2350,7 @@ function displayResults(data) {
         
         summaryCard.innerHTML = `
             <h2>${ui.yourAnalysis}</h2>
+            ${getCacheInfoBanner(data._cache_info)}
             <div class="analysis-header">
                 <div class="gauge-container">
                     <svg class="circular-gauge" viewBox="0 0 200 200">
