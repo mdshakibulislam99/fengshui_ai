@@ -73,6 +73,7 @@
         + '</header>';
 
     function applyLangToHeader() {
+        console.log('[QiMatrix Header] applyLangToHeader called, QiLang available:', typeof QiLang !== 'undefined');
         if (typeof QiLang === 'undefined') return;
         // Translate all data-i18n elements inside the header
         document.querySelectorAll('.top-frame [data-i18n], .hdr-mobile-nav [data-i18n]').forEach(function(el) {
@@ -91,19 +92,24 @@
     }
 
     function init() {
+        console.log('[QiMatrix Header] Initializing...');
         // Prevent duplicate headers when script is loaded twice or when
         // a page still contains a legacy header implementation.
         if (document.querySelector('.top-frame') || document.querySelector('.main-header')) {
             // Header already exists — still apply lang and wire up toggle
+            console.log('[QiMatrix Header] Header already exists, skipping injection');
             applyLangToHeader();
             wireToggle();
             return;
         }
 
+        console.log('[QiMatrix Header] Injecting header HTML...');
         document.body.insertAdjacentHTML('afterbegin', html);
+        console.log('[QiMatrix Header] Header injected, header element:', document.querySelector('.top-frame'));
 
         // Apply saved language to the freshly-injected header immediately
         applyLangToHeader();
+        console.log('[QiMatrix Header] Language applied, QiLang status:', typeof QiLang);
 
         var toggle = document.querySelector('.hdr-toggle');
         var mobileNav = document.querySelector('.hdr-mobile-nav');
@@ -154,8 +160,10 @@
     }
 
     if (document.readyState === 'loading') {
+        console.log('[QiMatrix Header] DOM still loading, will initialize on DOMContentLoaded');
         document.addEventListener('DOMContentLoaded', init);
     } else {
+        console.log('[QiMatrix Header] DOM ready, initializing immediately');
         init();
     }
 })();
