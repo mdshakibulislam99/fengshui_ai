@@ -81,3 +81,135 @@ def search_buildings_baidu(
     except Exception as e:
         logger.error(f"Error searching Baidu buildings: {str(e)}")
         return []
+
+
+def search_schools_baidu(
+    longitude: float,
+    latitude: float,
+    radius: int = 500
+) -> List[Dict]:
+    """
+    Search for schools using Baidu Maps API.
+    
+    Args:
+        longitude: Longitude
+        latitude: Latitude
+        radius: Search radius in meters
+    
+    Returns:
+        List of school dictionaries with location data
+    """
+    if not Config.BAIDU_API_KEY:
+        logger.warning("❌ Baidu API key not configured")
+        return []
+    
+    try:
+        search_radius = max(radius, 1000)
+        
+        params = {
+            'query': '学校|大学|学院',  # Schools, colleges, universities
+            'location': f"{latitude},{longitude}",
+            'radius': search_radius,
+            'radius_limit': 'true',
+            'output': 'json',
+            'ak': Config.BAIDU_API_KEY,
+            'page_size': 20
+        }
+        
+        logger.info(f"🔍 Baidu schools search: lat={latitude}, lng={longitude}, search_radius={search_radius}m")
+        
+        response = requests.get(
+            'https://api.map.baidu.com/place/v2/search',
+            params=params,
+            timeout=10
+        )
+        response.raise_for_status()
+        
+        data = response.json()
+        
+        if data.get('status') == 0:
+            results = data.get('results', [])
+            schools = [
+                {
+                    'name': poi.get('name', ''),
+                    'longitude': poi.get('location', {}).get('lng', 0),
+                    'latitude': poi.get('location', {}).get('lat', 0),
+                    'address': poi.get('address', ''),
+                }
+                for poi in results
+            ]
+            logger.info(f"✓ Baidu found {len(schools)} schools")
+            return schools
+        else:
+            logger.warning(f"Baidu schools search failed: status={data.get('status')}")
+            return []
+            
+    except Exception as e:
+        logger.error(f"Error searching Baidu schools: {str(e)}")
+        return []
+
+
+def search_hospitals_baidu(
+    longitude: float,
+    latitude: float,
+    radius: int = 500
+) -> List[Dict]:
+    """
+    Search for hospitals using Baidu Maps API.
+    
+    Args:
+        longitude: Longitude
+        latitude: Latitude
+        radius: Search radius in meters
+    
+    Returns:
+        List of hospital dictionaries with location data
+    """
+    if not Config.BAIDU_API_KEY:
+        logger.warning("❌ Baidu API key not configured")
+        return []
+    
+    try:
+        search_radius = max(radius, 1000)
+        
+        params = {
+            'query': '医院|诊所|卫生所',  # Hospitals, clinics, health centers
+            'location': f"{latitude},{longitude}",
+            'radius': search_radius,
+            'radius_limit': 'true',
+            'output': 'json',
+            'ak': Config.BAIDU_API_KEY,
+            'page_size': 20
+        }
+        
+        logger.info(f"🔍 Baidu hospitals search: lat={latitude}, lng={longitude}, search_radius={search_radius}m")
+        
+        response = requests.get(
+            'https://api.map.baidu.com/place/v2/search',
+            params=params,
+            timeout=10
+        )
+        response.raise_for_status()
+        
+        data = response.json()
+        
+        if data.get('status') == 0:
+            results = data.get('results', [])
+            hospitals = [
+                {
+                    'name': poi.get('name', ''),
+                    'longitude': poi.get('location', {}).get('lng', 0),
+                    'latitude': poi.get('location', {}).get('lat', 0),
+                    'address': poi.get('address', ''),
+                }
+                for poi in results
+            ]
+            logger.info(f"✓ Baidu found {len(hospitals)} hospitals")
+            return hospitals
+        else:
+            logger.warning(f"Baidu hospitals search failed: status={data.get('status')}")
+            return []
+            
+    except Exception as e:
+        logger.error(f"Error searching Baidu hospitals: {str(e)}")
+        return []

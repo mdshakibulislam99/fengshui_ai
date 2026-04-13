@@ -265,8 +265,8 @@ def search_nearby_pois(longitude: float, latitude: float, radius: int = 500) -> 
                 pois = data.get('pois', [])
                 poi_results[category_name] = parse_pois(pois)
                 logger.info(f"Found {len(pois)} POIs for category: {category_name}")
-                # If buildings returned 0 results, flag for Baidu fallback
-                if category_name == 'buildings' and len(pois) == 0:
+                # Flag for Baidu fallback if key categories return 0 results
+                if category_name in ['buildings', 'schools', 'hospitals'] and len(pois) == 0:
                     rate_limited_categories.append(category_name)
             else:
                 info = data.get('info', '')
@@ -287,32 +287,42 @@ def search_nearby_pois(longitude: float, latitude: float, radius: int = 500) -> 
     if rate_limited_categories:
         logger.info(f"⚠️ AMap rate-limited {len(rate_limited_categories)} categories: {rate_limited_categories}")
         
-        # Fallback 1: Baidu Maps (especially good for buildings, schools, hospitals)
-        baidu_categories = ['buildings', 'schools', 'hospitals']
-        for cat in baidu_categories:
-            if cat not in rate_limited_categories:
-                continue
-                
-            logger.info(f"🗺️ Trying Baidu Maps fallback for {cat}...")
+        # Fallback 1: Baidu Maps (buildings, schools, hospitals)
+        if 'buildings' in rate_limited_categories:
+            logger.info(f"🗺️ Trying Baidu Maps fallback for buildings...")
             try:
                 from baidu_service import search_buildings_baidu
-                
-                # Baidu uses generic building query but returns mixed results
-                # For schools/hospitals, also try Baidu
-                results = search_buildings_baidu(longitude, latitude, radius)
-                if results:
-                    # For schools/hospitals, filter relevant results by name keywords
-                    if cat == 'schools':
-                        results = [r for r in results if any(kw in r.get('name', '').lower() for kw in ['school', '学', '学校', '学院', '大学'])]
-                    elif cat == 'hospitals':
-                        results = [r for r in results if any(kw in r.get('name', '').lower() for kw in ['hospital', '医', '医院', '诊所'])]
-                    
-                    if results:
-                        poi_results[cat] = results
-                        rate_limited_categories.remove(cat)
-                        logger.info(f"✓ Baidu fallback provided {len(results)} {cat}")
+                buildings = search_buildings_baidu(longitude, latitude, radius)
+                if buildings:
+                    poi_results['buildings'] = buildings
+                    rate_limited_categories.remove('buildings')
+                    logger.info(f"✓ Baidu fallback provided {len(buildings)} buildings")
             except Exception as e:
-                logger.debug(f"Baidu fallback for {cat} failed: {e}")
+                logger.debug(f"Baidu buildings fallback failed: {e}")
+        
+        if 'schools' in rate_limited_categories:
+            logger.info(f"🗺️ Trying Baidu Maps fallback for schools...")
+            try:
+                from baidu_service import search_schools_baidu
+                schools = search_schools_baidu(longitude, latitude, radius)
+                if schools:
+                    poi_results['schools'] = schools
+                    rate_limited_categories.remove('schools')
+                    logger.info(f"✓ Baidu fallback provided {len(schools)} schools")
+            except Exception as e:
+                logger.debug(f"Baidu schools fallback failed: {e}")
+        
+        if 'hospitals' in rate_limited_categories:
+            logger.info(f"🗺️ Trying Baidu Maps fallback for hospitals...")
+            try:
+                from baidu_service import search_hospitals_baidu
+                hospitals = search_hospitals_baidu(longitude, latitude, radius)
+                if hospitals:
+                    poi_results['hospitals'] = hospitals
+                    rate_limited_categories.remove('hospitals')
+                    logger.info(f"✓ Baidu fallback provided {len(hospitals)} hospitals")
+            except Exception as e:
+                logger.debug(f"Baidu hospitals fallback failed: {e}")
         
         # Fallback 2: OpenStreetMap Overpass
         if rate_limited_categories:
