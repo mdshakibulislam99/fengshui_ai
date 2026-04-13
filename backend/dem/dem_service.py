@@ -256,15 +256,14 @@ class DEMService:
         if oe_result.get('success'):
             return oe_result
 
-        # Last resort: Google Earth Engine
-        if not self._authenticated:
-            logger.error("All DEM sources (OpenTopography, Open-Elevation, GEE) unavailable")
-            return {
-                'elevation_m': None,
-                'success': False,
-                'source': 'None',
-                'error': 'No DEM sources available'
-            }
+        # All DEM sources exhausted - return error
+        logger.error("All DEM sources exhausted (OpenTopography, Open-Elevation fallback)")
+        return {
+            'elevation_m': None,
+            'success': False,
+            'source': 'None',
+            'error': 'No DEM sources available'
+        }
         
         try:
             logger.info(f"Using GEE fallback for ({lon}, {lat})...")
@@ -329,10 +328,9 @@ class DEMService:
                 'source': str
             }
         """
-        if not self._authenticated:
-            # Use Open-Elevation free API for terrain metrics
-            logger.info(f"GEE unavailable - using Open-Elevation grid for terrain metrics at ({lon}, {lat})")
-            return self._get_terrain_metrics_open_elevation(lat, lon, radius_m)
+        # Use Open-Elevation as fallback (GEE removed)
+        logger.info(f"Using Open-Elevation grid for terrain metrics at ({lon}, {lat})")
+        return self._get_terrain_metrics_open_elevation(lat, lon, radius_m)
         
         try:
             logger.info(f"Using GEE for terrain metrics at ({lon}, {lat})...")
