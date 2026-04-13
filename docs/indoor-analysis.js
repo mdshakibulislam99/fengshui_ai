@@ -29,6 +29,169 @@ let interactionManager = null;
 let hasUnsavedChanges = false;
 let currentEditingDesignId = null;
 let currentEditingDesignName = null;
+let latestDesignAnalysisResult = null;
+let latestUploadAnalysisResult = null;
+
+function getIndoorLang() {
+    return (window.QiLang && window.QiLang.currentLang === 'zh') ? 'zh' : 'en';
+}
+
+function i18nText(enText, zhText) {
+    return getIndoorLang() === 'zh' ? zhText : enText;
+}
+
+function getIndoorCopy() {
+    return {
+        insightsTitle: i18nText('Feng Shui AI Insights', '风水 AI 洞察'),
+        insightsDescDesign: i18nText(
+            'Model-guided interpretation of core factors, including score evidence, strengths, and prioritized correction points.',
+            '基于模型的核心因子解读，包含评分依据、优势表现与优先优化项。'
+        ),
+        insightsDescUpload: i18nText(
+            'Model-guided interpretation of photo-detected indoor factors, including score evidence and prioritized correction points.',
+            '基于模型的照片识别室内因子解读，包含评分依据与优先优化项。'
+        ),
+        confidence: i18nText('Confidence', '置信度'),
+        dataSources: i18nText('Data sources', '数据来源'),
+        alreadyGood: i18nText('What Is Already Good', '当前优势'),
+        needsImprovement: i18nText('What Needs Improvement', '待优化项'),
+        overallScore: i18nText('Overall Feng Shui Score', '综合风水评分'),
+        overallFengShui: i18nText('Overall Feng Shui', '综合风水'),
+        scoreLegend: i18nText('Score color legend', '评分颜色图例'),
+        categoryBreakdown: i18nText('Category Breakdown', '分类细分'),
+        fiveElements: i18nText('Five Elements Distribution', '五行分布'),
+        elementAnalysis: i18nText('Element Analysis', '元素分析'),
+        aiInterpretation: i18nText('AI Interpretation & Recommendations', 'AI 解读与建议'),
+        analyzing: i18nText('⏳ Analyzing...', '⏳ 分析中...'),
+        analyzingPhotos: i18nText('Analyzing Photos...', '照片分析中...'),
+        analyzeRoom: i18nText('Analyze Room', '分析房间'),
+        clickToUpload: i18nText('Click to Upload', '点击上传'),
+        notification: i18nText('Notification', '提示'),
+        confirmAction: i18nText('Confirm Action', '确认操作'),
+        inputRequired: i18nText('Input Required', '请输入'),
+        success: i18nText('Success', '成功'),
+        error: i18nText('Error', '错误'),
+        warning: i18nText('Warning', '警告'),
+        info: i18nText('Info', '信息')
+    };
+}
+
+function getIndoorTermMaps() {
+    return {
+        roomType: {
+            en: { bedroom: 'Bedroom', living: 'Living Room', kitchen: 'Kitchen', office: 'Office', dining: 'Dining Room', general: 'General' },
+            zh: { bedroom: '卧室', living: '客厅', kitchen: '厨房', office: '办公室', dining: '餐厅', general: '通用' }
+        },
+        elementName: {
+            en: {
+                bed: 'Bed', sofa: 'Sofa', desk: 'Desk', table: 'Table', chair: 'Chair', wardrobe: 'Wardrobe', bookshelf: 'Bookshelf',
+                mirror: 'Mirror', painting: 'Painting', clock: 'Clock', vase: 'Vase', rug: 'Rug', curtain: 'Curtains', window: 'Window',
+                door: 'Door', fountain: 'Fountain', crystals: 'Crystals', bamboo: 'Bamboo', plant: 'Plant', bonsai: 'Bonsai', flowers: 'Flowers',
+                lamp: 'Lamp', chandelier: 'Chandelier', candle: 'Candles', tv: 'TV'
+            },
+            zh: {
+                bed: '床', sofa: '沙发', desk: '书桌', table: '桌子', chair: '椅子', wardrobe: '衣柜', bookshelf: '书架',
+                mirror: '镜子', painting: '装饰画', clock: '时钟', vase: '花瓶', rug: '地毯', curtain: '窗帘', window: '窗户',
+                door: '门', fountain: '喷泉', crystals: '水晶', bamboo: '竹子', plant: '绿植', bonsai: '盆景', flowers: '花卉',
+                lamp: '台灯', chandelier: '吊灯', candle: '蜡烛', tv: '电视'
+            }
+        },
+        displayValue: {
+            en: {
+                earth: 'Earth', wood: 'Wood', water: 'Water', fire: 'Fire', metal: 'Metal',
+                yin: 'Yin', yang: 'Yang', neutral: 'Neutral',
+                relationship: 'Relationship', family: 'Family', career: 'Career', health: 'Health', support: 'Support', wealth: 'Wealth',
+                knowledge: 'Knowledge', fame: 'Fame', expansion: 'Expansion', creativity: 'Creativity', helpful: 'Helpful People', peace: 'Peace',
+                stability: 'Stability', protection: 'Protection', opportunities: 'Opportunities', clarity: 'Clarity', life: 'Life', growth: 'Growth',
+                beauty: 'Beauty', decorative: 'Decorative', privacy: 'Privacy', grounding: 'Grounding', openness: 'Openness', entry: 'Entry',
+                flow: 'Flow', energy: 'Energy', inspiration: 'Inspiration', entertainment: 'Entertainment', warmth: 'Warmth', grandeur: 'Grandeur',
+                illumination: 'Illumination', passion: 'Passion', balance: 'Balance', wisdom: 'Wisdom', prosperity: 'Prosperity'
+            },
+            zh: {
+                earth: '土', wood: '木', water: '水', fire: '火', metal: '金',
+                yin: '阴', yang: '阳', neutral: '中性',
+                relationship: '感情', family: '家庭', career: '事业', health: '健康', support: '贵人', wealth: '财富',
+                knowledge: '学业', fame: '名望', expansion: '拓展', creativity: '创意', helpful: '助力', peace: '平和',
+                stability: '稳定', protection: '防护', opportunities: '机遇', clarity: '清明', life: '生机', growth: '成长',
+                beauty: '美感', decorative: '装饰', privacy: '私密', grounding: '稳固', openness: '通透', entry: '入口',
+                flow: '流动', energy: '能量', inspiration: '灵感', entertainment: '娱乐', warmth: '温暖', grandeur: '气场',
+                illumination: '照明', passion: '热情', balance: '平衡', wisdom: '智慧', prosperity: '兴旺'
+            }
+        }
+    };
+}
+
+function translateIndoorText(text) {
+    const raw = String(text || '');
+    if (!raw || getIndoorLang() !== 'zh') return raw;
+
+    let output = raw;
+    const replacements = [
+        ['Element Balance', '元素平衡'],
+        ['Energy Flow (Yin-Yang)', '能量流动（阴阳）'],
+        ['Space Flow & Layout', '空间流动与布局'],
+        ['Functional Design', '功能性设计'],
+        ['High', '高'],
+        ['Medium', '中'],
+        ['Five Elements Theory', '五行理论'],
+        ['Room Design Analysis', '房间设计分析'],
+        ['Yin-Yang Theory', '阴阳理论'],
+        ['Energy Balance', '能量平衡'],
+        ['Space Planning', '空间规划'],
+        ['Feng Shui Principles', '风水原则'],
+        ['Room Type Analysis', '房间类型分析'],
+        ['Best Practices', '最佳实践'],
+        ['Elements are distributed across the room', '元素在房间中分布较均衡'],
+        ['Energy flow is present', '能量流动已形成'],
+        ['Elements are placed in the room', '元素已完成空间摆放'],
+        ['Essential elements are present', '关键元素已具备'],
+        ['Balance of wood, fire, earth, metal, and water elements in the space.', '空间内木、火、土、金、水五行元素的平衡状态。'],
+        ['Add more wood elements (plants, furniture) for growth energy', '增加木元素（植物、木质家具）以提升生长能量'],
+        ['Include fire elements (candles, red colors) for passion and warmth', '加入火元素（蜡烛、暖色）以增强热情与温度'],
+        ['Add water elements (fountain, mirror) for flow and prosperity', '加入水元素（喷泉、镜子）以增强流动与财运'],
+        ['Incorporate earth elements (crystals, pottery) for stability', '加入土元素（水晶、陶器）以增强稳定性'],
+        ['Include metal elements (clocks, metal frames) for clarity', '加入金元素（时钟、金属饰件）以增强清晰与秩序'],
+        ['Balance yang energy with softer, yin elements (curtains, rugs)', '用更柔和的阴性元素（窗帘、地毯）平衡阳性能量'],
+        ['Add more yang energy with lighting and active elements', '增加照明与动态元素以提升阳性能量'],
+        ['Consider decluttering - too many items can block energy flow', '建议减少杂物，过多物品会阻碍气流'],
+        ['Add plants for fresh air and positive energy', '增加植物以改善空气并提升正向能量'],
+        ['⚠️ Avoid placing mirrors directly facing the bed', '⚠️ 避免镜子正对床铺'],
+        ['Your room design shows good feng shui balance!', '您的房间设计呈现良好的风水平衡'],
+        ['Increase natural light access and layer warm ambient lighting to activate healthy qi.', '增加自然采光并叠加暖光环境照明，以激活健康气场。'],
+        ['Clear circulation routes between doorway, windows, and key furniture to support smoother energy flow.', '清理门口、窗边与关键家具之间的动线，提升气流顺畅度。'],
+        ['Balance strong tones with earth and wood colors to stabilize the five elements.', '用土色与木色平衡强烈色调，稳定五行能量。'],
+        ['Reposition major furniture into command positions facing the room entry where possible.', '尽量将主要家具调整到可见入口的主位位置。'],
+        ['Reduce visible clutter and organize storage to prevent stagnant qi pockets.', '减少可见杂物并优化收纳，避免气场停滞。'],
+        ['Upload all five directions (north, south, east, west, floor plan) for a more complete analysis.', '上传北、南、东、西和地面五个方向可获得更完整分析。'],
+        ['Room energy profile is balanced. Maintain clear pathways, healthy light, and element diversity.', '房间能量结构较均衡，请继续保持通畅动线、健康采光与元素多样性。']
+    ];
+
+    replacements.forEach(([en, zh]) => {
+        output = output.split(en).join(zh);
+    });
+
+    output = output.replace(/Current balance:\s*(\d+)\s*Yin,\s*(\d+)\s*Yang elements\./i, '当前平衡：阴 $1，阳 $2。');
+    output = output.replace(/Room has\s*(\d+)\s*elements\s*-\s*evaluating density and flow\./i, '房间包含 $1 个元素，正在评估密度与流动性。');
+    output = output.replace(/Layout suitability for\s*([a-zA-Z_\-]+)\s*functionality\./i, (m, roomType) => {
+        const map = getIndoorTermMaps().roomType.zh;
+        const rt = map[String(roomType).toLowerCase()] || roomType;
+        return `布局对${rt}功能的适配性。`;
+    });
+
+    return output;
+}
+
+function translateFactorForDisplay(factor) {
+    return {
+        ...factor,
+        title: translateIndoorText(factor.title),
+        confidence: translateIndoorText(factor.confidence),
+        mainIssue: translateIndoorText(factor.mainIssue),
+        dataSources: Array.isArray(factor.dataSources) ? factor.dataSources.map(translateIndoorText) : [],
+        current: Array.isArray(factor.current) ? factor.current.map(translateIndoorText) : [],
+        improve: Array.isArray(factor.improve) ? factor.improve.map(translateIndoorText) : []
+    };
+}
 
 // Element data for feng shui analysis
 const elementFengShuiData = {
@@ -351,7 +514,7 @@ async function analyzeDesign() {
     const analyzeBtn = document.querySelector('.analyze-btn');
     const originalText = analyzeBtn.textContent;
     analyzeBtn.disabled = true;
-    analyzeBtn.textContent = '⏳ Analyzing...';
+    analyzeBtn.textContent = getIndoorCopy().analyzing;
     
     showIndoorLoading();
     
@@ -458,7 +621,7 @@ function summarizeIndoorFactorsForChatbot(factors = []) {
 function buildDesignChatbotData(result) {
     const roomType = document.getElementById('roomTypeDesign')?.value || 'bedroom';
     const scores = result.scores || {};
-    const factors = result.factors || [];
+    const factors = (result.factors || []).map(translateFactorForDisplay);
     const summary = summarizeIndoorFactorsForChatbot(factors);
 
     return {
@@ -523,7 +686,9 @@ function buildUploadChatbotData(analysis, factors, fiveElements) {
 
 function renderIndoorResults(result) {
     // result: { scores, factors: [{title, score, current, missing, improve}], summary, suggestions }
+    latestDesignAnalysisResult = result;
     const results = document.getElementById('designResults');
+    const copy = getIndoorCopy();
     
     // Analysis Factor Cards (Left Column - using outdoor analysis structure)
     const analysisCards = document.getElementById('analysisCards');
@@ -531,8 +696,8 @@ function renderIndoorResults(result) {
     
     analysisCards.innerHTML = `
         <div class="insights-header">
-            <h3>Feng Shui AI Insights</h3>
-            <p>Model-guided interpretation of core factors, including score evidence, strengths, and prioritized correction points.</p>
+            <h3>${copy.insightsTitle}</h3>
+            <p>${copy.insightsDescDesign}</p>
         </div>
         
         <div class="insights-topic-grid">
@@ -551,8 +716,8 @@ function renderIndoorResults(result) {
                         </div>
                         
                         <div class="insight-block">
-                            <p class="insight-meta"><strong>Confidence:</strong> ${escapeHtml(factor.confidence || 'Medium')}</p>
-                            ${factor.dataSources && factor.dataSources.length ? `<p class="insight-meta"><strong>Data sources:</strong> ${factor.dataSources.map(s => escapeHtml(s)).join(' • ')}</p>` : ''}
+                            <p class="insight-meta"><strong>${copy.confidence}:</strong> ${escapeHtml(factor.confidence || i18nText('Medium', '中'))}</p>
+                            ${factor.dataSources && factor.dataSources.length ? `<p class="insight-meta"><strong>${copy.dataSources}:</strong> ${factor.dataSources.map(s => escapeHtml(s)).join(' • ')}</p>` : ''}
                             ${factor.mainIssue ? `<p class="insight-meta">${escapeHtml(factor.mainIssue)}</p>` : ''}
                             ${factor.current && factor.current.length ? `
                                 <ul class="insight-mini-list">
@@ -563,14 +728,14 @@ function renderIndoorResults(result) {
                         
                         ${factor.current && factor.current.length ? `
                             <div class="insight-block">
-                                <h5>What Is Already Good</h5>
+                                <h5>${copy.alreadyGood}</h5>
                                 <p>${factor.current.map(item => escapeHtml(item)).join(', ')}</p>
                             </div>
                         ` : ''}
                         
                         ${factor.improve && factor.improve.length ? `
                             <div class="insight-block">
-                                <h5>What Needs Improvement</h5>
+                                <h5>${copy.needsImprovement}</h5>
                                 <p>${factor.improve.map(item => escapeHtml(item)).join(', ')}</p>
                             </div>
                         ` : ''}
@@ -594,7 +759,7 @@ function renderIndoorResults(result) {
     
     dashboard.innerHTML = `
         <div class="card" style="margin-bottom: 12px;">
-            <h3 class="section-heading" style="margin-top:0;">Overall Feng Shui Score</h3>
+            <h3 class="section-heading" style="margin-top:0;">${copy.overallScore}</h3>
             <div class="analysis-header">
                 <div class="gauge-container">
                     <svg class="circular-gauge" viewBox="0 0 200 200">
@@ -606,21 +771,21 @@ function renderIndoorResults(result) {
                     </div>
                 </div>
                 <div class="analysis-info">
-                    <div class="info-label">Overall Feng Shui</div>
-                    <div class="info-status"><strong style="color: ${activeColor};">${scoreGrade.description}</strong></div>
+                    <div class="info-label">${copy.overallFengShui}</div>
+                    <div class="info-status"><strong style="color: ${activeColor};">${getScoreHealthLabelIndoor(overallScore)}</strong></div>
                     <div class="color-bar">
                         <div class="color-segment" style="background-color:${activeColor}; width:100%;"></div>
                     </div>
-                    <div class="score-legend" aria-label="Score color legend">
+                    <div class="score-legend" aria-label="${copy.scoreLegend}">
                         ${SCORE_GRADES_INDOOR.map((grade) => `
-                            <span class="legend-item"><span class="legend-dot" style="background:${grade.color};"></span><span class="legend-label">${grade.description}</span></span>
+                            <span class="legend-item"><span class="legend-dot" style="background:${grade.color};"></span><span class="legend-label">${getIndoorLang() === 'zh' ? grade.description.zh : grade.description.en}</span></span>
                         `).join('')}
                     </div>
                 </div>
             </div>
         </div>
         <div class="card">
-            <h3 class="section-heading">Category Breakdown</h3>
+            <h3 class="section-heading">${copy.categoryBreakdown}</h3>
             <div class="scores-grid">
                 ${scoreEntries.map(([key, value]) => `
                     <div class="score-card">
@@ -676,7 +841,13 @@ function renderRadarChart(canvasId, fiveElements) {
         canvas.chart.destroy();
     }
     
-    const labels = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+    const labels = [
+        i18nText('Wood', '木'),
+        i18nText('Fire', '火'),
+        i18nText('Earth', '土'),
+        i18nText('Metal', '金'),
+        i18nText('Water', '水')
+    ];
     const data = [
         fiveElements.wood || 0,
         fiveElements.fire || 0,
@@ -740,7 +911,42 @@ function renderRadarChart(canvasId, fiveElements) {
 }
 
 function formatScoreLabel(key) {
-    return key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    const labels = {
+        en: {
+            element_balance: 'Element Balance',
+            energy_balance: 'Energy Balance',
+            space_flow: 'Space Flow',
+            functional_layout: 'Functional Layout',
+            color_harmony: 'Color Harmony',
+            furniture_placement: 'Furniture Placement',
+            declutter: 'Declutter',
+            lighting: 'Lighting',
+            ai_indoor: 'AI Indoor',
+            wood: 'Wood',
+            fire: 'Fire',
+            earth: 'Earth',
+            metal: 'Metal',
+            water: 'Water'
+        },
+        zh: {
+            element_balance: '元素平衡',
+            energy_balance: '阴阳平衡',
+            space_flow: '空间气流',
+            functional_layout: '功能布局',
+            color_harmony: '色彩和谐',
+            furniture_placement: '家具摆放',
+            declutter: '整洁度',
+            lighting: '采光',
+            ai_indoor: 'AI 室内评分',
+            wood: '木',
+            fire: '火',
+            earth: '土',
+            metal: '金',
+            water: '水'
+        }
+    };
+    const lang = getIndoorLang();
+    return labels[lang][key] || key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 }
 
 function getScoreColor(score) {
@@ -815,12 +1021,12 @@ function AnalysisCard({ title, score, current = [], missing = [], improve = [], 
 
 // Score color and label functions matching outdoor analysis
 const SCORE_GRADES_INDOOR = [
-    { min: 0, description: 'Poor', color: '#eab308' },
-    { min: 50, description: 'Weak', color: '#eab308' },
-    { min: 60, description: 'Moderate', color: '#f59e0b' },
-    { min: 70, description: 'Good', color: '#00A99D' },
-    { min: 80, description: 'Very Good', color: '#00A99D' },
-    { min: 90, description: 'Excellent', color: '#059669' }
+    { min: 0, description: { en: 'Poor', zh: '较差' }, color: '#eab308' },
+    { min: 50, description: { en: 'Weak', zh: '偏弱' }, color: '#eab308' },
+    { min: 60, description: { en: 'Moderate', zh: '一般' }, color: '#f59e0b' },
+    { min: 70, description: { en: 'Good', zh: '良好' }, color: '#00A99D' },
+    { min: 80, description: { en: 'Very Good', zh: '很好' }, color: '#00A99D' },
+    { min: 90, description: { en: 'Excellent', zh: '优秀' }, color: '#059669' }
 ];
 
 function getGradeForScoreIndoor(score) {
@@ -841,7 +1047,9 @@ function getStatusColorIndoor(score) {
 }
 
 function getScoreHealthLabelIndoor(score) {
-    return getGradeForScoreIndoor(score).description;
+    const desc = getGradeForScoreIndoor(score).description;
+    if (typeof desc === 'string') return desc;
+    return getIndoorLang() === 'zh' ? desc.zh : desc.en;
 }
 
 // ...existing code...
@@ -888,15 +1096,19 @@ function getElementIcon(type) {
 }
 
 function formatElementName(type) {
-    return type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Unknown';
+    if (!type) return i18nText('Unknown', '未知');
+    const lang = getIndoorLang();
+    const map = getIndoorTermMaps().elementName[lang];
+    return map[type] || (type.charAt(0).toUpperCase() + type.slice(1));
 }
 
 function formatDisplayValue(value) {
-    if (!value || typeof value !== 'string') return 'Unknown';
-    return value
-        .split(' ')
-        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ');
+    if (!value || typeof value !== 'string') return i18nText('Unknown', '未知');
+    const lang = getIndoorLang();
+    const map = getIndoorTermMaps().displayValue[lang] || {};
+    const key = value.toLowerCase();
+    if (map[key]) return map[key];
+    return value.split(' ').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
 }
 
 function showUsedElementDetails(index) {
@@ -927,34 +1139,34 @@ function showElementDetails(details, showBack = true) {
     detailsPanel.innerHTML = `
         <div class="detail-section">
             <div class="detail-topbar">
-                ${showBack ? '<button class="detail-back-btn" onclick="clearElementDetails()" title="Back to used elements">←</button>' : '<span></span>'}
+                ${showBack ? `<button class="detail-back-btn" onclick="clearElementDetails()" title="${i18nText('Back to used elements', '返回已使用元素')}\">←</button>` : '<span></span>'}
                 <h4>${formatElementName(type)}</h4>
             </div>
             <div class="detail-item">
-                <strong>Feng Shui Element:</strong> ${formatDisplayValue(fengShui.element)}
+                <strong>${i18nText('Feng Shui Element', '五行属性')}:</strong> ${formatDisplayValue(fengShui.element)}
             </div>
             <div class="detail-item">
-                <strong>Energy:</strong> ${formatDisplayValue(fengShui.energy)}
+                <strong>${i18nText('Energy', '能量')}:</strong> ${formatDisplayValue(fengShui.energy)}
             </div>
             <div class="detail-item">
-                <strong>Bagua Area:</strong> ${formatDisplayValue(fengShui.bagua)}
+                <strong>${i18nText('Bagua Area', '八卦方位')}:</strong> ${formatDisplayValue(fengShui.bagua)}
             </div>
             <div class="detail-item">
-                <strong>Position:</strong> 
+                <strong>${i18nText('Position', '位置')}:</strong> 
                 X: ${position.x.toFixed(2)}, Z: ${position.z.toFixed(2)}
             </div>
             <div class="controls-section">
-                <button onclick="rotateSelected()" class="control-btn">Rotate (R)</button>
-                <button onclick="deleteSelected()" class="control-btn delete-btn">Delete</button>
+                <button onclick="rotateSelected()" class="control-btn">${i18nText('Rotate (R)', '旋转 (R)')}</button>
+                <button onclick="deleteSelected()" class="control-btn delete-btn">${i18nText('Delete', '删除')}</button>
             </div>
             <div class="help-text">
-                <p><strong>Controls:</strong></p>
+                <p><strong>${i18nText('Controls', '操作说明')}:</strong></p>
                 <ul>
-                    <li>Click & drag to move</li>
-                    <li>Press R to rotate</li>
-                    <li>Press Delete to remove</li>
-                    <li>Right-click + drag to rotate view</li>
-                    <li>Scroll to zoom</li>
+                    <li>${i18nText('Click & drag to move', '点击并拖动以移动')}</li>
+                    <li>${i18nText('Press R to rotate', '按 R 键旋转')}</li>
+                    <li>${i18nText('Press Delete to remove', '按 Delete 键删除')}</li>
+                    <li>${i18nText('Right-click + drag to rotate view', '右键拖动旋转视角')}</li>
+                    <li>${i18nText('Scroll to zoom', '滚轮缩放')}</li>
                 </ul>
             </div>
         </div>
@@ -968,8 +1180,8 @@ function clearElementDetails() {
     if (placedElements.length === 0) {
         detailsPanel.innerHTML = `
             <div class="detail-placeholder">
-                <p>No elements used yet</p>
-                <p class="detail-hint">Place an element, then select it to view details</p>
+                <p>${i18nText('No elements used yet', '尚未使用任何元素')}</p>
+                <p class="detail-hint">${i18nText('Place an element, then select it to view details', '先放置元素，再选中查看详情')}</p>
             </div>
         `;
         return;
@@ -980,7 +1192,7 @@ function clearElementDetails() {
         const name = formatElementName(item.type);
         const element = item.fengShui?.element || elementFengShuiData[item.type]?.element || 'unknown';
         return `
-            <button class="used-element-item" onclick="showUsedElementDetails(${index})" title="View ${name} details">
+            <button class="used-element-item" onclick="showUsedElementDetails(${index})" title="${i18nText('View', '查看')} ${name} ${i18nText('details', '详情')}">
                 <span class="used-element-icon">${icon}</span>
                 <span class="used-element-name">${name}</span>
                 <span class="used-element-tag">${element}</span>
@@ -992,13 +1204,13 @@ function clearElementDetails() {
         <div class="detail-section used-elements-section">
             <div class="detail-topbar">
                 <span></span>
-                <h4>Used Elements (${placedElements.length})</h4>
+                <h4>${i18nText('Used Elements', '已使用元素')} (${placedElements.length})</h4>
             </div>
             <div class="used-elements-list">
                 ${usedList}
             </div>
             <div class="help-text">
-                <p><strong>Tip:</strong> Click any object in the 3D room or an item above to view full details.</p>
+                <p><strong>${i18nText('Tip', '提示')}:</strong> ${i18nText('Click any object in the 3D room or an item above to view full details.', '点击 3D 房间中的任意物体或上方条目查看完整详情。')}</p>
             </div>
         </div>
     `;
@@ -1903,7 +2115,12 @@ function updateCameraButtons({
 }
 
 function toTitleCase(value) {
-    return value ? value.charAt(0).toUpperCase() + value.slice(1) : '';
+    if (!value) return '';
+    if (getIndoorLang() === 'zh') {
+        const dirMap = { north: '北', south: '南', east: '东', west: '西', floor: '地面' };
+        return dirMap[value] || value;
+    }
+    return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function setCurrentCameraDirection(direction) {
@@ -2400,7 +2617,7 @@ async function analyzePhotos() {
     }
 
     btn.disabled = true;
-    btn.textContent = 'Analyzing Photos...';
+    btn.textContent = getIndoorCopy().analyzingPhotos;
 
     try {
         const source = hasGuidedCameraCaptures
@@ -2432,13 +2649,15 @@ async function analyzePhotos() {
         );
     } finally {
         btn.disabled = false;
-        btn.textContent = 'Analyze Room';
+        btn.textContent = getIndoorCopy().analyzeRoom;
     }
 }
 
 function displayUploadResults(analysis) {
+    latestUploadAnalysisResult = analysis;
     const resultsSection = document.getElementById('uploadResults');
     resultsSection.style.display = 'block';
+    const copy = getIndoorCopy();
     const categories = analysis.categories || {};
     const scoreMap = {
         overall: Number(analysis.overallScore || 0),
@@ -2451,69 +2670,69 @@ function displayUploadResults(analysis) {
 
     const factors = [
         {
-            title: 'Lighting & Natural Energy',
+            title: i18nText('Lighting & Natural Energy', '采光与自然能量'),
             score: scoreMap.lighting,
-            confidence: 'Medium',
-            dataSources: ['Photo Upload Analysis', 'Interior Lighting Heuristics'],
-            mainIssue: 'Natural and artificial lighting quality influences vitality and mood in the room.',
+            confidence: i18nText('Medium', '中'),
+            dataSources: [i18nText('Photo Upload Analysis', '照片上传分析'), i18nText('Interior Lighting Heuristics', '室内采光启发规则')],
+            mainIssue: i18nText('Natural and artificial lighting quality influences vitality and mood in the room.', '自然与人工照明质量会影响空间活力与居住情绪。'),
             current: scoreMap.lighting >= 75
-                ? ['Natural lighting appears supportive for daily activity']
-                : ['Lighting appears uneven in some areas'],
+                ? [i18nText('Natural lighting appears supportive for daily activity', '自然采光对日常活动有较好支持')]
+                : [i18nText('Lighting appears uneven in some areas', '部分区域采光分布不均')],
             improve: scoreMap.lighting >= 75
-                ? ['Keep primary activity zones well lit through the day']
-                : ['Increase daylight access and add layered warm lighting']
+                ? [i18nText('Keep primary activity zones well lit through the day', '保持主要活动区在全天有充足光照')]
+                : [i18nText('Increase daylight access and add layered warm lighting', '增加自然采光并补充分层暖光照明')]
         },
         {
-            title: 'Space Flow & Circulation',
+            title: i18nText('Space Flow & Circulation', '空间气流与动线'),
             score: scoreMap.space_flow,
-            confidence: 'Medium',
-            dataSources: ['Photo Upload Analysis', 'Qi Flow Principles'],
-            mainIssue: 'Circulation routes should remain open to maintain healthy qi movement.',
+            confidence: i18nText('Medium', '中'),
+            dataSources: [i18nText('Photo Upload Analysis', '照片上传分析'), i18nText('Qi Flow Principles', '气流运行原则')],
+            mainIssue: i18nText('Circulation routes should remain open to maintain healthy qi movement.', '动线应保持通畅，以维持健康气流运行。'),
             current: scoreMap.space_flow >= 70
-                ? ['General circulation appears reasonably open']
-                : ['Some movement paths look blocked or narrow'],
+                ? [i18nText('General circulation appears reasonably open', '整体动线较为通畅')]
+                : [i18nText('Some movement paths look blocked or narrow', '部分通道存在拥堵或狭窄问题')],
             improve: scoreMap.space_flow >= 70
-                ? ['Maintain open pathways between entry and key zones']
-                : ['Clear obstacles from primary paths and reduce crowding']
+                ? [i18nText('Maintain open pathways between entry and key zones', '保持入口与关键区域之间的通道通畅')]
+                : [i18nText('Clear obstacles from primary paths and reduce crowding', '清理主要通道障碍，降低拥挤程度')]
         },
         {
-            title: 'Color Harmony',
+            title: i18nText('Color Harmony', '色彩和谐'),
             score: scoreMap.color_harmony,
-            confidence: 'Medium',
-            dataSources: ['Photo Upload Analysis', 'Five Elements Color Mapping'],
-            mainIssue: 'Color and material balance affects emotional comfort and element harmony.',
+            confidence: i18nText('Medium', '中'),
+            dataSources: [i18nText('Photo Upload Analysis', '照片上传分析'), i18nText('Five Elements Color Mapping', '五行色彩映射')],
+            mainIssue: i18nText('Color and material balance affects emotional comfort and element harmony.', '色彩与材质平衡会影响情绪舒适度与五行协调。'),
             current: scoreMap.color_harmony >= 68
-                ? ['Color tones appear relatively balanced']
-                : ['Color balance appears inconsistent across areas'],
+                ? [i18nText('Color tones appear relatively balanced', '整体色调较为均衡')]
+                : [i18nText('Color balance appears inconsistent across areas', '不同区域色彩平衡不一致')],
             improve: scoreMap.color_harmony >= 68
-                ? ['Preserve element balance when adding new decor']
-                : ['Add grounding earth/wood tones to balance dominant colors']
+                ? [i18nText('Preserve element balance when adding new decor', '新增装饰时保持五行色彩平衡')]
+                : [i18nText('Add grounding earth/wood tones to balance dominant colors', '增加土/木色调以平衡主导色彩')]
         },
         {
-            title: 'Furniture Placement',
+            title: i18nText('Furniture Placement', '家具摆放'),
             score: scoreMap.furniture_placement,
-            confidence: 'Medium',
-            dataSources: ['Photo Upload Analysis', 'Command Position Rules'],
-            mainIssue: 'Major furniture should support command view and avoid blocking energy flow.',
+            confidence: i18nText('Medium', '中'),
+            dataSources: [i18nText('Photo Upload Analysis', '照片上传分析'), i18nText('Command Position Rules', '主位规则')],
+            mainIssue: i18nText('Major furniture should support command view and avoid blocking energy flow.', '主要家具应具备主位视角，并避免阻挡气流。'),
             current: scoreMap.furniture_placement >= 70
-                ? ['Main furniture placement appears mostly functional']
-                : ['Some key furniture appears suboptimal in position'],
+                ? [i18nText('Main furniture placement appears mostly functional', '主要家具摆放基本合理')]
+                : [i18nText('Some key furniture appears suboptimal in position', '部分关键家具位置有待优化')],
             improve: scoreMap.furniture_placement >= 70
-                ? ['Keep anchor furniture aligned with room entry visibility']
-                : ['Reposition key furniture for better command and openness']
+                ? [i18nText('Keep anchor furniture aligned with room entry visibility', '保持核心家具与入口可视关系')]
+                : [i18nText('Reposition key furniture for better command and openness', '调整关键家具位置，增强主位与开阔感')]
         },
         {
-            title: 'Declutter & Organization',
+            title: i18nText('Declutter & Organization', '整洁与收纳'),
             score: scoreMap.declutter,
-            confidence: 'Medium',
-            dataSources: ['Photo Upload Analysis', 'Clutter Impact Model'],
-            mainIssue: 'Visual clutter can slow qi flow and reduce calmness.',
+            confidence: i18nText('Medium', '中'),
+            dataSources: [i18nText('Photo Upload Analysis', '照片上传分析'), i18nText('Clutter Impact Model', '杂乱影响模型')],
+            mainIssue: i18nText('Visual clutter can slow qi flow and reduce calmness.', '视觉杂乱会减缓气流并降低空间安定感。'),
             current: scoreMap.declutter >= 65
-                ? ['Organization level appears adequate']
-                : ['Clutter may be reducing comfort and clarity'],
+                ? [i18nText('Organization level appears adequate', '整体收纳水平较好')]
+                : [i18nText('Clutter may be reducing comfort and clarity', '杂乱可能降低舒适度与清晰感')],
             improve: scoreMap.declutter >= 65
-                ? ['Maintain simple storage and visible order']
-                : ['Remove non-essential items and improve closed storage use']
+                ? [i18nText('Maintain simple storage and visible order', '保持简洁收纳与可见秩序')]
+                : [i18nText('Remove non-essential items and improve closed storage use', '清理非必要物品并加强封闭收纳')]
         }
     ];
 
@@ -2521,10 +2740,10 @@ function displayUploadResults(analysis) {
     if (analysisCards) {
         analysisCards.innerHTML = `
             <div class="insights-header">
-                <h3>Feng Shui AI Insights</h3>
-                <p>Model-guided interpretation of photo-detected indoor factors, including score evidence and prioritized correction points.</p>
+                <h3>${copy.insightsTitle}</h3>
+                <p>${copy.insightsDescUpload}</p>
                 <div class="insight-score-pill" style="display:inline-flex; margin-top:8px; background:${getStatusColorIndoor(scoreMap.overall)}1a; border-color:${getStatusColorIndoor(scoreMap.overall)}55; color:${getStatusColorIndoor(scoreMap.overall)};">
-                    Overall Feng Shui: ${Math.round(scoreMap.overall)} • ${getScoreHealthLabelIndoor(scoreMap.overall)}
+                    ${copy.overallFengShui}: ${Math.round(scoreMap.overall)} • ${getScoreHealthLabelIndoor(scoreMap.overall)}
                 </div>
             </div>
             <div class="insights-topic-grid">
@@ -2542,19 +2761,19 @@ function displayUploadResults(analysis) {
                                 </div>
                             </div>
                             <div class="insight-block">
-                                <p class="insight-meta"><strong>Confidence:</strong> ${escapeHtml(factor.confidence || 'Medium')}</p>
-                                ${factor.dataSources && factor.dataSources.length ? `<p class="insight-meta"><strong>Data sources:</strong> ${factor.dataSources.map(s => escapeHtml(s)).join(' • ')}</p>` : ''}
+                                <p class="insight-meta"><strong>${copy.confidence}:</strong> ${escapeHtml(factor.confidence || i18nText('Medium', '中'))}</p>
+                                ${factor.dataSources && factor.dataSources.length ? `<p class="insight-meta"><strong>${copy.dataSources}:</strong> ${factor.dataSources.map(s => escapeHtml(s)).join(' • ')}</p>` : ''}
                                 ${factor.mainIssue ? `<p class="insight-meta">${escapeHtml(factor.mainIssue)}</p>` : ''}
                             </div>
                             ${factor.current && factor.current.length ? `
                                 <div class="insight-block">
-                                    <h5>What Is Already Good</h5>
+                                    <h5>${copy.alreadyGood}</h5>
                                     <p>${factor.current.map(item => escapeHtml(item)).join(', ')}</p>
                                 </div>
                             ` : ''}
                             ${factor.improve && factor.improve.length ? `
                                 <div class="insight-block">
-                                    <h5>What Needs Improvement</h5>
+                                    <h5>${copy.needsImprovement}</h5>
                                     <p>${factor.improve.map(item => escapeHtml(item)).join(', ')}</p>
                                 </div>
                             ` : ''}
@@ -2570,7 +2789,7 @@ function displayUploadResults(analysis) {
         const scoreEntries = Object.entries(scoreMap).filter(([key]) => key !== 'overall');
         dashboard.innerHTML = `
             <div class="card">
-                <h3 class="section-heading">Category Breakdown</h3>
+                <h3 class="section-heading">${copy.categoryBreakdown}</h3>
                 <div class="scores-grid">
                     ${scoreEntries.map(([key, value]) => `
                         <div class="score-card">
@@ -2583,7 +2802,7 @@ function displayUploadResults(analysis) {
             </div>
             <div class="card" style="margin-top: 12px;">
                 <div style="display:flex; align-items:center; justify-content:space-between; gap: 12px;">
-                    <h3 class="section-heading" style="margin:0;">Overall Feng Shui Score</h3>
+                    <h3 class="section-heading" style="margin:0;">${copy.overallScore}</h3>
                     <span class="insight-score-pill" style="background:${getStatusColorIndoor(scoreMap.overall)}1a; border-color:${getStatusColorIndoor(scoreMap.overall)}55; color:${getStatusColorIndoor(scoreMap.overall)};">
                         ${Math.round(scoreMap.overall)} • ${getScoreHealthLabelIndoor(scoreMap.overall)}
                     </span>
@@ -2622,7 +2841,7 @@ function displayUploadResults(analysis) {
         recommendations.innerHTML = analysis.recommendations.map(rec => `
             <div class="recommendation-item" style="display:flex; gap:10px; padding:10px 12px; background:#f8fbf9; border-radius:10px; margin-bottom:10px;">
                 <span>💡</span>
-                <p style="margin:0; color: var(--ei-text);">${escapeHtml(rec)}</p>
+                <p style="margin:0; color: var(--ei-text);">${escapeHtml(translateIndoorText(rec))}</p>
             </div>
         `).join('');
     }
@@ -2638,15 +2857,16 @@ function displayUploadResults(analysis) {
 // ==================== CUSTOM MODAL SYSTEM ====================
 
 // Custom Alert
-function customAlert(message, title = 'Notification', type = 'info') {
+function customAlert(message, title = null, type = 'info') {
     return new Promise((resolve) => {
+        const copy = getIndoorCopy();
         const modal = document.getElementById('customAlertModal');
         const titleEl = document.getElementById('alertTitle');
         const messageEl = document.getElementById('alertMessage');
         const iconHeader = modal.querySelector('.modal-icon-header');
         const icon = document.getElementById('alertIcon');
         
-        titleEl.textContent = title;
+        titleEl.textContent = title || copy.notification;
         messageEl.textContent = message;
         
         // Reset classes
@@ -2675,13 +2895,14 @@ function customAlert(message, title = 'Notification', type = 'info') {
 }
 
 // Custom Confirm
-function customConfirm(message, title = 'Confirm Action') {
+function customConfirm(message, title = null) {
     return new Promise((resolve) => {
+        const copy = getIndoorCopy();
         const modal = document.getElementById('customConfirmModal');
         const titleEl = document.getElementById('confirmTitle');
         const messageEl = document.getElementById('confirmMessage');
         
-        titleEl.textContent = title;
+        titleEl.textContent = title || copy.confirmAction;
         messageEl.textContent = message;
         
         modal.style.display = 'flex';
@@ -2694,14 +2915,15 @@ function customConfirm(message, title = 'Confirm Action') {
 }
 
 // Custom Prompt
-function customPrompt(message, title = 'Input Required', defaultValue = '') {
+function customPrompt(message, title = null, defaultValue = '') {
     return new Promise((resolve) => {
+        const copy = getIndoorCopy();
         const modal = document.getElementById('customPromptModal');
         const titleEl = document.getElementById('promptTitle');
         const messageEl = document.getElementById('promptMessage');
         const input = document.getElementById('promptInput');
         
-        titleEl.textContent = title;
+        titleEl.textContent = title || copy.inputRequired;
         messageEl.textContent = message;
         input.value = defaultValue;
         
@@ -2743,11 +2965,12 @@ function showToast(message, type = 'info', duration = 3000) {
         info: 'ℹ'
     };
     
+    const copy = getIndoorCopy();
     const titles = {
-        success: 'Success',
-        error: 'Error',
-        warning: 'Warning',
-        info: 'Info'
+        success: copy.success,
+        error: copy.error,
+        warning: copy.warning,
+        info: copy.info
     };
     
     const toast = document.createElement('div');
@@ -2901,6 +3124,125 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCameraDirectionUI();
         setCameraStatus('Camera is not started.');
     }
+
+    const localizeRuntimeUi = () => {
+        const copy = getIndoorCopy();
+        const roomTypeMap = getIndoorTermMaps().roomType[getIndoorLang()];
+
+        document.querySelector('.back-btn')?.replaceChildren(document.createTextNode(i18nText('← Back to Selection', '← 返回选择')));
+        const pageTitle = document.querySelector('.design-header h2');
+        if (pageTitle) pageTitle.textContent = i18nText('Design Your Room', '设计您的房间');
+
+        const saveBtn = document.querySelector('.save-btn');
+        if (saveBtn) {
+            saveBtn.textContent = i18nText('Save Design', '保存设计');
+            saveBtn.title = i18nText('Save to your account', '保存到您的账户');
+        }
+        const historyBtn = document.querySelector('.history-btn');
+        if (historyBtn) {
+            historyBtn.textContent = i18nText('History', '历史记录');
+            historyBtn.title = i18nText('View design history', '查看设计历史');
+        }
+
+        const elementsTitle = document.querySelector('.elements-panel h3');
+        if (elementsTitle) elementsTitle.textContent = i18nText('Room Elements', '房间元素');
+        const elementSearch = document.getElementById('elementSearch');
+        if (elementSearch) elementSearch.placeholder = i18nText('Search elements...', '搜索元素...');
+
+        document.querySelectorAll('.category').forEach((el) => {
+            const c = el.getAttribute('data-category');
+            const labels = {
+                all: i18nText('All', '全部'),
+                furniture: i18nText('Furniture', '家具'),
+                decor: i18nText('Decor', '装饰'),
+                plants: i18nText('Plants', '植物'),
+                lighting: i18nText('Lighting', '照明')
+            };
+            if (labels[c]) el.textContent = labels[c];
+        });
+
+        document.querySelectorAll('.element-item').forEach((item) => {
+            const key = item.getAttribute('data-element');
+            const span = item.querySelector('span');
+            if (span) span.textContent = formatElementName(key);
+        });
+
+        const roomTypeLabel = document.querySelector('.room-info .info-item label');
+        if (roomTypeLabel) roomTypeLabel.textContent = i18nText('Room Type:', '房间类型：');
+        const roomTypeSelect = document.getElementById('roomTypeDesign');
+        if (roomTypeSelect) {
+            Array.from(roomTypeSelect.options).forEach((opt) => {
+                const val = opt.value;
+                if (roomTypeMap[val]) opt.textContent = roomTypeMap[val];
+            });
+        }
+
+        const clearBtn = document.querySelector('.clear-btn');
+        if (clearBtn) clearBtn.textContent = i18nText('Clear All', '清空全部');
+        const analyzeBtnDesign = document.querySelector('.analyze-btn');
+        if (analyzeBtnDesign && !analyzeBtnDesign.disabled) analyzeBtnDesign.textContent = i18nText('Analyze Room', '分析房间');
+
+        const detailsTitle = document.querySelector('.details-panel h3');
+        if (detailsTitle) detailsTitle.textContent = i18nText('Element Details', '元素详情');
+
+        const historyTitle = document.querySelector('#historyModal .modal-header h3');
+        if (historyTitle) historyTitle.textContent = i18nText('Design History', '设计历史');
+        const loadingHistory = document.querySelector('#savedDesignsList p');
+        if (loadingHistory && loadingHistory.textContent.includes('Loading')) {
+            loadingHistory.textContent = i18nText('Loading your design history...', '正在加载您的设计历史...');
+        }
+
+        document.querySelectorAll('.analysis-result-heading').forEach((el) => {
+            el.textContent = i18nText('AI Feng Shui Analysis Result', 'AI 风水分析结果');
+        });
+
+        const alertPrimary = document.querySelector('#customAlertModal .modal-btn.primary');
+        if (alertPrimary) alertPrimary.textContent = i18nText('OK', '确定');
+
+        const confirmSecondary = document.querySelector('#customConfirmModal .modal-btn.secondary');
+        const confirmPrimary = document.querySelector('#customConfirmModal .modal-btn.primary');
+        if (confirmSecondary) confirmSecondary.textContent = i18nText('Cancel', '取消');
+        if (confirmPrimary) confirmPrimary.textContent = i18nText('Confirm', '确认');
+
+        const promptSecondary = document.querySelector('#customPromptModal .modal-btn.secondary');
+        const promptPrimary = document.querySelector('#customPromptModal .modal-btn.primary');
+        const promptInput = document.getElementById('promptInput');
+        if (promptSecondary) promptSecondary.textContent = i18nText('Cancel', '取消');
+        if (promptPrimary) promptPrimary.textContent = i18nText('Submit', '提交');
+        if (promptInput) promptInput.placeholder = i18nText('Enter value...', '请输入内容...');
+
+        const aiPanelTitles = document.querySelectorAll('.ai-panel h3');
+        aiPanelTitles.forEach((node) => {
+            if (!node.getAttribute('data-i18n')) {
+                if (node.textContent.includes('Five Elements Distribution') || node.textContent.includes('五行分布')) {
+                    node.textContent = copy.fiveElements;
+                } else if (node.textContent.includes('Element Analysis') || node.textContent.includes('元素分析')) {
+                    node.textContent = copy.elementAnalysis;
+                } else if (node.textContent.includes('AI Interpretation') || node.textContent.includes('AI 解读')) {
+                    node.textContent = copy.aiInterpretation;
+                }
+            }
+        });
+
+        const analyzeBtn = document.getElementById('analyzePhotosBtn');
+        if (analyzeBtn && !analyzeBtn.disabled) {
+            analyzeBtn.textContent = copy.analyzeRoom;
+        }
+    };
+
+    localizeRuntimeUi();
+
+    window.addEventListener('qilang:changed', () => {
+        localizeRuntimeUi();
+
+        if (latestDesignAnalysisResult && document.getElementById('designResults')?.style.display !== 'none') {
+            renderIndoorResults(latestDesignAnalysisResult);
+        }
+        if (latestUploadAnalysisResult && document.getElementById('uploadResults')?.style.display !== 'none') {
+            displayUploadResults(latestUploadAnalysisResult);
+        }
+        clearElementDetails();
+    });
     
     console.log('✓ Global functions registered');
 });
