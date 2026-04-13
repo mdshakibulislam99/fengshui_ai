@@ -264,46 +264,6 @@ class DEMService:
             'source': 'None',
             'error': 'No DEM sources available'
         }
-        
-        try:
-            logger.info(f"Using GEE fallback for ({lon}, {lat})...")
-            # Use publicly available SRTM 90m elevation data from Google
-            dem = ee.Image('USGS/SRTMGL1_003').select('elevation')
-            
-            # Create a point at the location
-            point = ee.Geometry.Point([lon, lat])
-            
-            # Sample the elevation at the point
-            sample = dem.sample(point, 30).first()
-            
-            # Get the elevation value
-            elevation = sample.get('elevation').getInfo()
-            
-            if elevation is None:
-                return {
-                    'elevation_m': None,
-                    'success': False,
-                    'source': 'GEE SRTM 30m',
-                    'error': 'No DEM data at this location'
-                }
-            
-            logger.info(f"✓ Elevation from GEE (fallback): {elevation}m")
-            return {
-                'elevation_m': float(elevation),
-                'success': True,
-                'source': 'GEE SRTM 30m (fallback)',
-                'used_fallback': True
-            }
-            
-        except Exception as e:
-            logger.error(f"Error getting elevation for ({lon}, {lat}): {e}")
-            return {
-                'elevation_m': None,
-                'success': False,
-                'source': 'GEE SRTM 30m',
-                'error': str(e),
-                'used_fallback': True
-            }
     
     @lru_cache(maxsize=128)
     def get_terrain_metrics(self, lon: float, lat: float, radius_m: int = 500) -> dict:
@@ -331,70 +291,6 @@ class DEMService:
         # Use Open-Elevation as fallback (GEE removed)
         logger.info(f"Using Open-Elevation grid for terrain metrics at ({lon}, {lat})")
         return self._get_terrain_metrics_open_elevation(lat, lon, radius_m)
-        
-        try:
-            logger.info(f"Using GEE for terrain metrics at ({lon}, {lat})...")
-            # Use publicly available SRTM 90m elevation data from Google
-            dem = ee.Image('USGS/SRTMGL1_003').select('elevation')
-            
-            # Create buffer zone around point
-            point = ee.Geometry.Point([lon, lat])
-            buffer_zone = point.buffer(radius_m)
-            
-            # Calculate terrain metrics
-            slope = ee.Terrain.slope(dem)
-            aspect = ee.Terrain.aspect(dem)
-            
-            # Sample elevation at center point
-            center_elevation = dem.sample(point, 30).first().get('elevation')
-            
-            # Get slope at center
-            center_slope = slope.sample(point, 30).first().get('slope')
-            
-            # Get aspect at center
-            center_aspect = aspect.sample(point, 30).first().get('aspect')
-            
-            # Calculate elevation variation (ruggedness) in the buffer zone
-            elevation_std = dem.reduceRegion(
-                reducer=ee.Reducer.stdDev(),
-                geometry=buffer_zone,
-                scale=30
-            ).get('elevation')
-            
-            # Execute the computation
-            result = ee.Dictionary({
-                'elevation': center_elevation,
-                'slope': center_slope,
-                'aspect': center_aspect,
-                'elevation_std': elevation_std
-            }).getInfo()
-            
-            # Handle None values
-            elevation = result.get('elevation')
-            slope_val = result.get('slope')
-            aspect_val = result.get('aspect')
-            elev_std = result.get('elevation_std')
-            
-            return {
-                'elevation_m': float(elevation) if elevation is not None else None,
-                'slope_degrees': float(slope_val) if slope_val is not None else None,
-                'aspect_degrees': float(aspect_val) if aspect_val is not None else None,
-                'elevation_std': float(elev_std) if elev_std is not None else None,
-                'success': elevation is not None,
-                'source': 'GEE SRTM 30m (terrain analysis)'
-            }
-            
-        except Exception as e:
-            logger.error(f"Error getting terrain metrics for ({lon}, {lat}): {e}")
-            return {
-                'elevation_m': None,
-                'slope_degrees': None,
-                'aspect_degrees': None,
-                'elevation_std': None,
-                'success': False,
-                'error': str(e),
-                'source': 'GEE SRTM 30m'
-            }
     
     @lru_cache(maxsize=128)
     def get_topography_score(self, lon: float, lat: float, radius_m: int = 500) -> dict:
