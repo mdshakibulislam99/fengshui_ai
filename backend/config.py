@@ -23,6 +23,9 @@ class Config:
     AMAP_WEB_JS_KEY = os.getenv('AMAP_WEB_JS_KEY', os.getenv('AMAP_API_KEY', 'YOUR_AMAP_API_KEY_HERE'))
     AMAP_SECURITY_KEY = os.getenv('AMAP_SECURITY_KEY', '')
     
+    # Baidu Maps API Configuration (fallback for buildings POI)
+    BAIDU_API_KEY = os.getenv('BAIDU_API_KEY', '')
+    
     # API Endpoints
     AMAP_GEOCODE_URL = 'https://restapi.amap.com/v3/geocode/geo'
     AMAP_POI_SEARCH_URL = 'https://restapi.amap.com/v3/place/around'
