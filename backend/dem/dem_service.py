@@ -65,7 +65,7 @@ class DEMService:
             }
             
             logger.debug(f"OpenTopography request params: {params}")
-            response = requests.get(self.opentopo_api_url, params=params, timeout=15)
+            response = requests.get(self.opentopo_api_url, params=params, timeout=5)
             
             # Check for rate limiting or quota exceeded
             if response.status_code == 429:
@@ -142,7 +142,7 @@ class DEMService:
             response = requests.post(
                 url,
                 json={'locations': [{'latitude': lat, 'longitude': lon}]},
-                timeout=10
+                timeout=5
             )
             if response.status_code == 200:
                 results = response.json().get('results', [])
@@ -178,7 +178,7 @@ class DEMService:
             ]
 
             url = 'https://api.open-elevation.com/api/v1/lookup'
-            response = requests.post(url, json={'locations': locations}, timeout=15)
+            response = requests.post(url, json={'locations': locations}, timeout=5)
             if response.status_code != 200:
                 return {'success': False, 'error': f'Open-Elevation error {response.status_code}'}
 
