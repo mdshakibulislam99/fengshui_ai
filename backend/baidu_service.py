@@ -24,7 +24,7 @@ def search_buildings_baidu(
     Args:
         longitude: Longitude
         latitude: Latitude
-        radius: Search radius in meters
+        radius: Search radius in meters (Baidu performs better with larger radius)
     
     Returns:
         List of building dictionaries with location data
@@ -34,18 +34,22 @@ def search_buildings_baidu(
         return []
     
     try:
-        # Use working query terms (楼$教学楼$宿舍 = buildings$teaching halls$dormitories)
+        # Use working query terms (楼 = buildings/buildings-related)
+        # Note: Baidu server API works better with simple single Chinese character queries
+        # Expand radius for better results (Baidu needs larger search area)
+        expanded_radius = max(radius, 1000)  # Minimum 1000m for reliable results
+        
         params = {
-            'query': '楼$教学楼$宿舍$商务楼',
+            'query': '楼',  # Simple query: buildings
             'location': f"{latitude},{longitude}",
-            'radius': radius,
+            'radius': expanded_radius,
             'radius_limit': 'true',
             'output': 'json',
             'ak': Config.BAIDU_API_KEY,
             'page_size': 20
         }
         
-        logger.info(f"🔍 Baidu buildings search at ({latitude},{longitude}), radius={radius}m")
+        logger.info(f"🔍 Baidu buildings search at ({latitude},{longitude}), radius={expanded_radius}m")
         
         response = requests.get(
             'https://api.map.baidu.com/place/v2/search',
