@@ -394,6 +394,26 @@ def get_config():
         return error_response("Failed to load configuration", 500)
 
 
+@app.route('/api/cache/clear', methods=['POST'])
+def clear_cache():
+    """Clear all cached analysis results. Used for fresh testing."""
+    global _analyze_cache
+    try:
+        with _analyze_cache_lock:
+            cache_size_before = len(_analyze_cache)
+            _analyze_cache.clear()
+            logger.info(f"✅ Cache cleared: {cache_size_before} entries removed")
+        
+        return success_response({
+            "status": "cleared",
+            "entries_removed": cache_size_before,
+            "message": "Analysis cache cleared successfully. Next analysis will be fresh."
+        })
+    except Exception as e:
+        logger.error(f"Error clearing cache: {str(e)}")
+        return error_response(f"Failed to clear cache: {str(e)}", 500)
+
+
 def _cache_key(lat: float, lng: float, radius: int, location_tag: str = '') -> str:
     """Stable cache key for an analyze request (rounded to ~1 m precision)."""
     normalized_tag = str(location_tag or '').strip().lower()[:128]
