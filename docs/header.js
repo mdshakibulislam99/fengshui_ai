@@ -151,102 +151,6 @@
         window.addEventListener('qilang:changed', function() {
             applyLangToHeader();
         });
-        
-        // 🔄 PAGE NAVIGATION PERSISTENCE - Remember where user left off
-        saveCurrentPageToHistory();
-    }
-    
-    // ==================== PAGE PERSISTENCE SYSTEM ====================
-    function saveCurrentPageToHistory() {
-        try {
-            var pathName = window.location.pathname || '';
-            var page = pathName.split('/').pop() || 'index.html';
-            
-            // Don't save if on home page and came from home page last time
-            var lastPage = localStorage.getItem('_lastVisitedPage');
-            if (page !== 'index.html' || lastPage !== 'index.html') {
-                localStorage.setItem('_lastVisitedPage', page);
-                console.log('📍 Saved page: ' + page);
-            }
-        } catch (e) {
-            console.warn('Failed to save page history:', e);
-        }
-    }
-    
-    function restorePageOrShowPrompt() {
-        try {
-            var pathName = window.location.pathname || '';
-            var currentPage = pathName.split('/').pop() || 'index.html';
-            
-            // Only restore if currently on home page
-            if (currentPage !== 'index.html') {
-                return;
-            }
-            
-            var lastPage = localStorage.getItem('_lastVisitedPage');
-            if (lastPage && lastPage !== 'index.html') {
-                // We're on home page but came from somewhere else
-                // Show a "Return to..." banner
-                setTimeout(function() {
-                    var pageLabel = getPageLabel(lastPage);
-                    if (pageLabel) {
-                        var banner = document.createElement('div');
-                        banner.className = 'restore-page-banner';
-                        banner.style.cssText = `
-                            background: #fff3e0;
-                            border-bottom: 1px solid #ffb74d;
-                            padding: 12px 20px;
-                            text-align: center;
-                            font-size: 14px;
-                            color: #e65100;
-                            z-index: 99;
-                            animation: slideDown 0.3s ease;
-                        `;
-                        
-                        var link = document.createElement('a');
-                        link.href = lastPage;
-                        link.style.cssText = 'color: #e65100; font-weight: 600; text-decoration: underline; margin-left: 8px;';
-                        link.textContent = pageLabel;
-                        
-                        var dismissBtn = document.createElement('button');
-                        dismissBtn.textContent = '✕ Dismiss';
-                        dismissBtn.style.cssText = 'margin-left: 16px; background: none; border: none; color: #e65100; cursor: pointer; text-decoration: underline;';
-                        dismissBtn.setAttribute('type', 'button');
-                        dismissBtn.addEventListener('click', function() {
-                            localStorage.removeItem('_lastVisitedPage');
-                            banner.remove();
-                        });
-                        
-                        banner.innerHTML = '📍 <strong>Return to where you left off?</strong> ';
-                        banner.appendChild(link);
-                        banner.appendChild(dismissBtn);
-                        
-                        var header = document.querySelector('.top-frame');
-                        if (header) {
-                            header.insertAdjacentElement('afterend', banner);
-                        } else {
-                            document.body.insertAdjacentElement('afterbegin', banner);
-                        }
-                    }
-                }, 200);
-            }
-        } catch (e) {
-            console.warn('Failed to restore page:', e);
-        }
-    }
-    
-    function getPageLabel(pageName) {
-        var labels = {
-            'index.html': 'Home',
-            'outdoor-analysis.html': 'Outdoor Analysis',
-            'indoor-analysis.html': 'Indoor Analysis',
-            'indoor-design.html': 'Indoor Design',
-            'indoor-upload.html': 'Room Upload',
-            'personal-feng-shui.html': 'Personal Feng Shui',
-            'weather.html': 'Weather Analysis',
-            'learn-feng-shui.html': 'Learn Feng Shui'
-        };
-        return labels[pageName] || pageName;
     }
 
     if (document.readyState === 'loading') {
@@ -254,15 +158,4 @@
     } else {
         init();
     }
-    
-    // Show restore banner on home page
-    var pathName = window.location.pathname || '';
-    var currentPage = pathName.split('/').pop() || 'index.html';
-    if (currentPage === 'index.html') {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', restorePageOrShowPrompt);
-        } else {
-            setTimeout(restorePageOrShowPrompt, 300);
-        }
-    }
-});
+})();
