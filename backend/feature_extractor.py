@@ -139,19 +139,14 @@ def extract_features(poi_data: Dict[str, List[Dict]],
         )
         
         # Features 8-12: external services
-        #
-        # Parallelism strategy: all 5 services start immediately in one pool.
-        # A per-request semaphore limits concurrent GEE calls to 3 at a time,
-        # preventing the thread-pool deadlock that occurred with 5 simultaneous
-        # GEE calls. Non-GEE services (Buildings via AMap) bypass the semaphore.
-        _gee_sem = threading.Semaphore(3)
+        # All services use China-accessible APIs (no GEE dependency)
+        # DEM: OpenTopography, NDVI: MODIS, Water: AMap, Wind: CMA, Flood: Local
 
         def _fetch_dem():
             if dem_service is None:
                 return {}
             try:
-                with _gee_sem:
-                    r = dem_service.get_topography_score(longitude, latitude, radius)
+                r = dem_service.get_topography_score(longitude, latitude, radius)
                 return {'dem': r}
             except Exception as exc:
                 logger.warning(f"⚠ DEM error: {exc}")
@@ -161,8 +156,7 @@ def extract_features(poi_data: Dict[str, List[Dict]],
             if hydrosheds_service is None:
                 return {}
             try:
-                with _gee_sem:
-                    r = hydrosheds_service.get_river_proximity_score(longitude, latitude, radius)
+                r = hydrosheds_service.get_river_proximity_score(longitude, latitude, radius)
                 return {'hydrosheds': r}
             except Exception as exc:
                 logger.warning(f"⚠ HydroSHEDS error: {exc}")
@@ -182,8 +176,7 @@ def extract_features(poi_data: Dict[str, List[Dict]],
             if wind_service is None:
                 return {}
             try:
-                with _gee_sem:
-                    r = wind_service.get_cached_wind_analysis(longitude, latitude, radius)
+                r = wind_service.get_cached_wind_analysis(longitude, latitude, radius)
                 return {'wind': r}
             except Exception as exc:
                 logger.warning(f"⚠ Wind error: {exc}")
@@ -193,8 +186,7 @@ def extract_features(poi_data: Dict[str, List[Dict]],
             if flood_service is None:
                 return {}
             try:
-                with _gee_sem:
-                    r = flood_service.get_flood_risk_analysis(longitude, latitude, radius)
+                r = flood_service.get_flood_risk_analysis(longitude, latitude, radius)
                 return {'flood': r}
             except Exception as exc:
                 logger.warning(f"⚠ Flood error: {exc}")
@@ -204,16 +196,14 @@ def extract_features(poi_data: Dict[str, List[Dict]],
             if ndvi_service is None:
                 return {}
             try:
-                # NDVI uses GEE (Sentinel-2) with MODIS free fallback — throttle with _gee_sem
-                with _gee_sem:
-                    r = ndvi_service.get_ndvi(longitude, latitude, radius_m=radius)
+                # NDVI uses MODIS (free, China-accessible) - no GEE dependency
+                r = ndvi_service.get_ndvi(longitude, latitude, radius_m=radius)
                 return {'ndvi': r}
             except Exception as exc:
                 logger.warning(f"⚠ NDVI error: {exc}")
                 return {}
 
-        # All 6 services run in a single pool. GEE-backed services are throttled
-        # to 3 concurrent calls by _gee_sem; Buildings (AMap HTTP) runs freely.
+        # All 6 services run in a single pool (no GEE throttling - using China-accessible APIs only)
         all_results = {}
         with ThreadPoolExecutor(max_workers=6) as pool:
             futs = {

@@ -153,15 +153,16 @@ def _log_request(response):
     return response
 
 # Initialize DEM Service for terrain analysis
+# Uses OpenTopography (primary) + Open-Elevation (free fallback) - no GEE
 dem_service = None
 if DEMConfig.GEE_ENABLE_DEM:
     try:
         dem_service = DEMService(
-            DEMConfig.GEE_SERVICE_ACCOUNT_PATH,
+            service_account_path=None,  # GEE removed - not used
             opentopo_api_key=DEMConfig.OPENTOPO_API_KEY,
             opentopo_api_url=DEMConfig.OPENTOPO_API_URL
         )
-        logger.info("✓ DEM service initialized successfully (OpenTopography + GEE fallback)")
+        logger.info("✓ DEM service initialized successfully (OpenTopography + Open-Elevation fallback)")
     except Exception as e:
         logger.warning(f"⚠ DEM service initialization failed: {e}")
         logger.warning("  Proceeding without DEM data - topography scores unavailable")
@@ -215,15 +216,15 @@ if FloodConfig.FLOOD_ENABLE:
         flood_service = None
 
 # Initialize NDVI service for satellite vegetation analysis
+# Uses MODIS (free, China-accessible) - no GEE or NASA API
 ndvi_service = None
 if NDVIConfig.NDVI_ENABLE:
     try:
         ndvi_service = NDVIService(
-            service_account_path=NDVIConfig.GEE_SERVICE_ACCOUNT_PATH,
-            nasa_api_key=NDVIConfig.NASA_API_KEY
+            service_account_path=None,  # GEE removed - MODIS is primary
+            nasa_api_key=None            # NASA removed - MODIS only
         )
-        logger.info("✓ GEE authenticated for NDVI analysis")
-        logger.info("✓ NDVI service initialized (Sentinel-2 + MODIS free fallback)")
+        logger.info("✓ NDVI service initialized (MODIS MOD13Q1 250m - free, no auth required)")
     except Exception as e:
         logger.warning(f"⚠ NDVI service initialization failed: {e}")
         ndvi_service = None

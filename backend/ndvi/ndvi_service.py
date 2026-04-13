@@ -1,12 +1,8 @@
 # ndvi_service.py - NDVI (Vegetation) Analysis Service
-# Handles vegetation monitoring from multiple satellite sources
+# Uses MODIS satellite data (free, China-accessible) - no GEE or NASA API
 
 import os
 import logging
-try:
-    import ee
-except ImportError:
-    ee = None
 import requests
 from functools import lru_cache
 from datetime import datetime, timedelta
@@ -20,13 +16,14 @@ logger = logging.getLogger(__name__)
 class NDVIService:
     """
     Service for analyzing vegetation (NDVI) at locations.
-    Supports multiple satellite sources with automatic fallback.
+    Uses MODIS satellite data (free, China-accessible).
+    No GEE or NASA API dependency.
     
     Features:
-    - Get NDVI from Sentinel-2 (10m resolution)
-    - Get NDVI from Landsat 8/9 (30m resolution)
-    - Automatic fallback between sources
-    - Vegetation quality scoring for Feng Shui analysis
+    - Get NDVI from MODIS MOD13Q1 250m resolution (ORNL DAAC)
+    - Fast response times (~1-2 seconds)
+    - Free access, no authentication required
+    - Works reliably across China
     """
     
     def __init__(self, service_account_path=None, nasa_api_key=None):
@@ -34,33 +31,11 @@ class NDVIService:
         Initialize NDVI Service.
         
         Args:
-            service_account_path: Path to GEE service account JSON
-            nasa_api_key: NASA API key for Landsat data
+            service_account_path: Deprecated - not used (GEE removed)
+            nasa_api_key: Deprecated - not used (NASA removed)
         """
-        self.service_account_path = service_account_path
-        self.nasa_api_key = nasa_api_key or os.getenv('NASA_API_KEY', '')
-        self._gee_authenticated = False
-        self._authenticate_gee()
-    
-    def _authenticate_gee(self):
-        """Authenticate with Google Earth Engine."""
-        if ee is None:
-            logger.warning("ee module not available - Sentinel-2 NDVI unavailable")
-            return
-        if not self.service_account_path or not os.path.exists(self.service_account_path):
-            logger.warning("GEE service account not found - Sentinel-2 NDVI unavailable")
-            return
-        
-        try:
-            ee.Initialize(
-                ee.ServiceAccountCredentials(
-                    None, self.service_account_path
-                )
-            )
-            self._gee_authenticated = True
-            logger.info("✓ GEE authenticated for NDVI analysis")
-        except Exception as e:
-            logger.warning(f"⚠ GEE authentication failed: {e}")
+        # GEE and NASA removed - MODIS is primary source
+        logger.info("✓ NDVI service initialized (MODIS MOD13Q1 250m - free, no auth required)")
     
     @lru_cache(maxsize=128)
     def get_sentinel2_ndvi(self, lon: float, lat: float, radius_m: int = 1000) -> dict:
@@ -336,9 +311,7 @@ class NDVIService:
 
     def get_ndvi(self, lon: float, lat: float, radius_m: int = 1000) -> dict:
         """
-        Get NDVI with automatic fallback.
-        Priority: MODIS ORNL (free, fast, 500m resolution) → Landsat (NASA API).
-        Sentinel-2 GEE disabled due to latency concerns — use MODIS for production.
+        Get NDVI using MODIS (free, China-accessible).
         
         Args:
             lon: Longitude
@@ -348,14 +321,8 @@ class NDVIService:
         Returns:
             dict with NDVI data
         """
-        # Try MODIS first (free, no auth, works everywhere, fast ~1-2s)
-        modis_result = self._get_ndvi_modis_ornl(lon, lat)
-        if modis_result.get('success'):
-            return modis_result
-
-        # Last resort: Landsat via NASA API (if MODIS fails)
-        # Sentinel-2 via GEE SKIPPED — too slow for production (15-20s latency)
-        return self.get_landsat_ndvi(lon, lat)
+        # Use MODIS ORNL (free, no auth, works everywhere in China, fast ~1-2s)
+        return self._get_ndvi_modis_ornl(lon, lat)
     
     def get_vegetation_quality_score(self, lon: float, lat: float, radius_m: int = 1000) -> dict:
         """

@@ -1,5 +1,5 @@
-# dem_service.py - DEM Service with OpenTopography (Primary), Google Earth Engine (Fallback),
-# and Open-Elevation (Free fallback - no API key required)
+# dem_service.py - DEM Service with OpenTopography (Primary) and Open-Elevation (Free Fallback)
+# Uses only China-accessible services - no GEE dependency
 
 import os
 import json
@@ -8,10 +8,6 @@ import math
 import numpy as np
 from pathlib import Path
 import requests
-try:
-    import ee
-except ImportError:
-    ee = None
 from functools import lru_cache
 
 logger = logging.getLogger(__name__)
@@ -19,53 +15,25 @@ logger = logging.getLogger(__name__)
 class DEMService:
     """
     Service for accessing elevation and terrain data.
-    Uses OpenTopography as primary source, falls back to Google Earth Engine if OpenTopography fails.
+    Uses OpenTopography as primary source, with Open-Elevation as free fallback.
+    No Google Earth Engine dependency.
     """
     
-    def __init__(self, service_account_path, opentopo_api_key=None, opentopo_api_url=None):
+    def __init__(self, service_account_path=None, opentopo_api_key=None, opentopo_api_url=None):
         """
-        Initialize DEM service with both OpenTopography and GEE credentials.
+        Initialize DEM service with OpenTopography (China-accessible).
         
         Args:
-            service_account_path: Path to service_account.json file for GEE
+            service_account_path: Deprecated - not used (kept for compatibility)
             opentopo_api_key: OpenTopography API key (optional)
             opentopo_api_url: OpenTopography API endpoint (optional)
         """
-        self.service_account_path = service_account_path
         self.opentopo_api_key = opentopo_api_key
         self.opentopo_api_url = opentopo_api_url or 'https://portal.opentopography.org/API/globaldem'
         self.opentopo_dem_type = 'SRTMGL1'  # SRTM 30m resolution
-        self._authenticated = False
         self._opentopo_available = bool(opentopo_api_key)
         
-        try:
-            self._authenticate()
-            logger.info("✓ Google Earth Engine authenticated successfully (fallback)")
-        except Exception as e:
-            logger.warning(f"⚠ GEE authentication failed: {e}. Will rely on OpenTopography only.")
-            # Don't raise - we can still use OpenTopography
-    
-    def _authenticate(self):
-        """Authenticate with Google Earth Engine using service account."""
-        if ee is None:
-            logger.warning("ee module not available - GEE fallback disabled")
-            return
-        if not os.path.exists(self.service_account_path):
-            logger.warning(f"Service account file not found: {self.service_account_path}")
-            return
-        
-        try:
-            # Initialize with service account credentials
-            ee.Initialize(
-                ee.ServiceAccountCredentials(
-                    email=None,
-                    key_file=self.service_account_path
-                )
-            )
-            self._authenticated = True
-        except Exception as e:
-            logger.error(f"Authentication error: {e}")
-            # Don't raise - we can still use OpenTopography
+        logger.info("✓ DEM service initialized (OpenTopography + Open-Elevation free fallback - no GEE needed)")
     
     def _get_elevation_opentopo(self, lon: float, lat: float) -> dict:
         """
