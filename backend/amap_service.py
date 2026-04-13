@@ -265,7 +265,7 @@ def search_nearby_pois(longitude: float, latitude: float, radius: int = 500) -> 
                 pois = data.get('pois', [])
                 poi_results[category_name] = parse_pois(pois)
                 logger.info(f"Found {len(pois)} POIs for category: {category_name}")
-                # Flag for Baidu fallback if key categories return 0 results
+                # Flag for OSM fallback if key categories return 0 results
                 if category_name in ['buildings', 'schools', 'hospitals'] and len(pois) == 0:
                     rate_limited_categories.append(category_name)
             else:
@@ -283,59 +283,19 @@ def search_nearby_pois(longitude: float, latitude: float, radius: int = 500) -> 
             logger.error(f"Error searching POIs for {category_name}: {str(e)}")
             poi_results[category_name] = []
     
-    # --- Fallback chain for rate-limited categories: Baidu → OSM ---
+    # --- Fallback chain for rate-limited categories: OSM only ---
     if rate_limited_categories:
         logger.info(f"⚠️ AMap rate-limited {len(rate_limited_categories)} categories: {rate_limited_categories}")
-        
-        # Fallback 1: Baidu Maps (buildings, schools, hospitals)
-        if 'buildings' in rate_limited_categories:
-            logger.info(f"🗺️ Trying Baidu Maps fallback for buildings...")
-            try:
-                from baidu_service import search_buildings_baidu
-                buildings = search_buildings_baidu(longitude, latitude, radius)
-                if buildings:
-                    poi_results['buildings'] = buildings
-                    rate_limited_categories.remove('buildings')
-                    logger.info(f"✓ Baidu fallback provided {len(buildings)} buildings")
-            except Exception as e:
-                logger.debug(f"Baidu buildings fallback failed: {e}")
-        
-        if 'schools' in rate_limited_categories:
-            logger.info(f"🗺️ Trying Baidu Maps fallback for schools...")
-            try:
-                from baidu_service import search_schools_baidu
-                schools = search_schools_baidu(longitude, latitude, radius)
-                if schools:
-                    poi_results['schools'] = schools
-                    rate_limited_categories.remove('schools')
-                    logger.info(f"✓ Baidu fallback provided {len(schools)} schools")
-            except Exception as e:
-                logger.debug(f"Baidu schools fallback failed: {e}")
-        
-        if 'hospitals' in rate_limited_categories:
-            logger.info(f"🗺️ Trying Baidu Maps fallback for hospitals...")
-            try:
-                from baidu_service import search_hospitals_baidu
-                hospitals = search_hospitals_baidu(longitude, latitude, radius)
-                if hospitals:
-                    poi_results['hospitals'] = hospitals
-                    rate_limited_categories.remove('hospitals')
-                    logger.info(f"✓ Baidu fallback provided {len(hospitals)} hospitals")
-            except Exception as e:
-                logger.debug(f"Baidu hospitals fallback failed: {e}")
-        
-        # Fallback 2: OpenStreetMap Overpass
-        if rate_limited_categories:
-            logger.info(f"🌍 Falling back to OpenStreetMap Overpass API...")
-            try:
-                from osm_fallback import search_nearby_pois_osm
-                osm_data = search_nearby_pois_osm(longitude, latitude, radius, rate_limited_categories)
-                for cat in rate_limited_categories:
-                    if osm_data.get(cat):
-                        poi_results[cat] = osm_data[cat]
-                        logger.info(f"✓ OSM fallback provided {len(osm_data[cat])} POIs for {cat}")
-            except Exception as e:
-                logger.error(f"OSM fallback failed: {e}")
+        logger.info(f"🌍 Falling back to OpenStreetMap Overpass API...")
+        try:
+            from osm_fallback import search_nearby_pois_osm
+            osm_data = search_nearby_pois_osm(longitude, latitude, radius, rate_limited_categories)
+            for cat in rate_limited_categories:
+                if osm_data.get(cat):
+                    poi_results[cat] = osm_data[cat]
+                    logger.info(f"✓ OSM fallback provided {len(osm_data[cat])} POIs for {cat}")
+        except Exception as e:
+            logger.error(f"OSM fallback failed: {e}")
     
     return poi_results
 
