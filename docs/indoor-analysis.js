@@ -125,49 +125,49 @@ function translateIndoorText(text) {
     const raw = String(text || '');
     if (!raw || getIndoorLang() !== 'zh') return raw;
 
-    let output = raw;
+    let output = raw.replace(/\s+/g, ' ').trim();
     const replacements = [
-        ['Element Balance', '元素平衡'],
-        ['Energy Flow (Yin-Yang)', '能量流动（阴阳）'],
-        ['Space Flow & Layout', '空间流动与布局'],
-        ['Functional Design', '功能性设计'],
-        ['High', '高'],
-        ['Medium', '中'],
-        ['Five Elements Theory', '五行理论'],
-        ['Room Design Analysis', '房间设计分析'],
-        ['Yin-Yang Theory', '阴阳理论'],
-        ['Energy Balance', '能量平衡'],
-        ['Space Planning', '空间规划'],
-        ['Feng Shui Principles', '风水原则'],
-        ['Room Type Analysis', '房间类型分析'],
-        ['Best Practices', '最佳实践'],
-        ['Elements are distributed across the room', '元素在房间中分布较均衡'],
-        ['Energy flow is present', '能量流动已形成'],
-        ['Elements are placed in the room', '元素已完成空间摆放'],
-        ['Essential elements are present', '关键元素已具备'],
-        ['Balance of wood, fire, earth, metal, and water elements in the space.', '空间内木、火、土、金、水五行元素的平衡状态。'],
-        ['Add more wood elements (plants, furniture) for growth energy', '增加木元素（植物、木质家具）以提升生长能量'],
-        ['Include fire elements (candles, red colors) for passion and warmth', '加入火元素（蜡烛、暖色）以增强热情与温度'],
-        ['Add water elements (fountain, mirror) for flow and prosperity', '加入水元素（喷泉、镜子）以增强流动与财运'],
-        ['Incorporate earth elements (crystals, pottery) for stability', '加入土元素（水晶、陶器）以增强稳定性'],
-        ['Include metal elements (clocks, metal frames) for clarity', '加入金元素（时钟、金属饰件）以增强清晰与秩序'],
-        ['Balance yang energy with softer, yin elements (curtains, rugs)', '用更柔和的阴性元素（窗帘、地毯）平衡阳性能量'],
-        ['Add more yang energy with lighting and active elements', '增加照明与动态元素以提升阳性能量'],
-        ['Consider decluttering - too many items can block energy flow', '建议减少杂物，过多物品会阻碍气流'],
-        ['Add plants for fresh air and positive energy', '增加植物以改善空气并提升正向能量'],
-        ['⚠️ Avoid placing mirrors directly facing the bed', '⚠️ 避免镜子正对床铺'],
-        ['Your room design shows good feng shui balance!', '您的房间设计呈现良好的风水平衡'],
-        ['Increase natural light access and layer warm ambient lighting to activate healthy qi.', '增加自然采光并叠加暖光环境照明，以激活健康气场。'],
-        ['Clear circulation routes between doorway, windows, and key furniture to support smoother energy flow.', '清理门口、窗边与关键家具之间的动线，提升气流顺畅度。'],
-        ['Balance strong tones with earth and wood colors to stabilize the five elements.', '用土色与木色平衡强烈色调，稳定五行能量。'],
-        ['Reposition major furniture into command positions facing the room entry where possible.', '尽量将主要家具调整到可见入口的主位位置。'],
-        ['Reduce visible clutter and organize storage to prevent stagnant qi pockets.', '减少可见杂物并优化收纳，避免气场停滞。'],
-        ['Upload all five directions (north, south, east, west, floor plan) for a more complete analysis.', '上传北、南、东、西和地面五个方向可获得更完整分析。'],
-        ['Room energy profile is balanced. Maintain clear pathways, healthy light, and element diversity.', '房间能量结构较均衡，请继续保持通畅动线、健康采光与元素多样性。']
+        [/\bElement Balance\b/gi, '元素平衡'],
+        [/\bEnergy Flow \(Yin-Yang\)\b/gi, '能量流动（阴阳）'],
+        [/\bSpace Flow & Layout\b/gi, '空间流动与布局'],
+        [/\bFunctional Design\b/gi, '功能性设计'],
+        [/\bHigh\b/gi, '高'],
+        [/\bMedium\b/gi, '中'],
+        [/\bFive Elements Theory\b/gi, '五行理论'],
+        [/\bRoom Design Analysis\b/gi, '房间设计分析'],
+        [/\bYin-Yang Theory\b/gi, '阴阳理论'],
+        [/\bEnergy Balance\b/gi, '能量平衡'],
+        [/\bSpace Planning\b/gi, '空间规划'],
+        [/\bFeng Shui Principles\b/gi, '风水原则'],
+        [/\bRoom Type Analysis\b/gi, '房间类型分析'],
+        [/\bBest Practices\b/gi, '最佳实践'],
+        [/Elements are distributed across the room/gi, '元素在房间中分布较均衡'],
+        [/Energy flow is present/gi, '能量流动已形成'],
+        [/Elements are placed in the room/gi, '元素已完成空间摆放'],
+        [/Essential elements are present/gi, '关键元素已具备'],
+        [/Balance of wood, fire, earth, metal, and water elements in the space\.?/gi, '空间内木、火、土、金、水五行元素的平衡状态。'],
+        [/Add more wood elements \(plants, furniture\) for growth energy/gi, '增加木元素（植物、木质家具）以提升生长能量'],
+        [/Include fire elements \(candles, red colors\) for passion and warmth/gi, '加入火元素（蜡烛、暖色）以增强热情与温度'],
+        [/Add water elements \(fountain, mirror\) for flow and prosperity/gi, '加入水元素（喷泉、镜子）以增强流动与财运'],
+        [/Incorporate earth elements \(crystals, pottery\) for stability/gi, '加入土元素（水晶、陶器）以增强稳定性'],
+        [/Include metal elements \(clocks, metal frames\) for clarity/gi, '加入金元素（时钟、金属饰件）以增强清晰与秩序'],
+        [/Balance yang energy with softer, yin elements \(curtains, rugs\)/gi, '用更柔和的阴性元素（窗帘、地毯）平衡阳性能量'],
+        [/Add more yang energy with lighting and active elements/gi, '增加照明与动态元素以提升阳性能量'],
+        [/Consider decluttering - too many items can block energy flow/gi, '建议减少杂物，过多物品会阻碍气流'],
+        [/Add plants for fresh air and positive energy/gi, '增加植物以改善空气并提升正向能量'],
+        [/⚠️\s*Avoid placing mirrors directly facing the bed/gi, '⚠️ 避免镜子正对床铺'],
+        [/Your room design shows good feng shui balance!/gi, '您的房间设计呈现良好的风水平衡'],
+        [/Increase natural light access and layer warm ambient lighting to activate healthy qi\.?/gi, '增加自然采光并叠加暖光环境照明，以激活健康气场。'],
+        [/Clear circulation routes between doorway, windows, and key furniture to support smoother energy flow\.?/gi, '清理门口、窗边与关键家具之间的动线，提升气流顺畅度。'],
+        [/Balance strong tones with earth and wood colors to stabilize the five elements\.?/gi, '用土色与木色平衡强烈色调，稳定五行能量。'],
+        [/Reposition major furniture into command positions facing the room entry where possible\.?/gi, '尽量将主要家具调整到可见入口的主位位置。'],
+        [/Reduce visible clutter and organize storage to prevent stagnant qi pockets\.?/gi, '减少可见杂物并优化收纳，避免气场停滞。'],
+        [/Upload all five directions \(north, south, east, west, floor plan\) for a more complete analysis\.?/gi, '上传北、南、东、西和地面五个方向可获得更完整分析。'],
+        [/Room energy profile is balanced\. Maintain clear pathways, healthy light, and element diversity\.?/gi, '房间能量结构较均衡，请继续保持通畅动线、健康采光与元素多样性。']
     ];
 
-    replacements.forEach(([en, zh]) => {
-        output = output.split(en).join(zh);
+    replacements.forEach(([pattern, zh]) => {
+        output = output.replace(pattern, zh);
     });
 
     output = output.replace(/Current balance:\s*(\d+)\s*Yin,\s*(\d+)\s*Yang elements\./i, '当前平衡：阴 $1，阳 $2。');
