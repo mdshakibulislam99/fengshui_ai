@@ -104,8 +104,18 @@
         }
 
         console.log('[QiMatrix Header] Injecting header HTML...');
-        document.body.insertAdjacentHTML('afterbegin', html);
-        console.log('[QiMatrix Header] Header injected, header element:', document.querySelector('.top-frame'));
+        try {
+            if (!document.body) {
+                console.error('[QiMatrix Header] Error: document.body is not available yet');
+                return;
+            }
+            document.body.insertAdjacentHTML('afterbegin', html);
+            console.log('[QiMatrix Header] Header injected successfully');
+            console.log('[QiMatrix Header] Header element:', document.querySelector('.top-frame') ? 'FOUND' : 'NOT FOUND');
+        } catch (e) {
+            console.error('[QiMatrix Header] Error during injection:', e);
+            return;
+        }
 
         // Apply saved language to the freshly-injected header immediately
         applyLangToHeader();
@@ -134,8 +144,14 @@
     }
 
     function wireToggle() {
+        console.log('[QiMatrix Header] wireToggle called');
         var langToggle = document.querySelector('.hdr-lang-toggle');
         var langToggleMobile = document.querySelector('.hdr-lang-toggle-mobile');
+
+        if (!langToggle && !langToggleMobile) {
+            console.warn('[QiMatrix Header] No language toggle buttons found');
+            return;
+        }
 
         if (langToggle && !langToggle.__qiLangBound) {
             langToggle.__qiLangBound = true;
