@@ -103,7 +103,7 @@ def _call_overpass(query: str) -> Optional[dict]:
             resp = requests.post(
                 endpoint,
                 data={'data': query},
-                timeout=20,
+                timeout=(2, 6),
                 headers={'Accept': 'application/json'}
             )
             if resp.status_code == 200:

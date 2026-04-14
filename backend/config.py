@@ -13,6 +13,14 @@ def _env_float(name: str, default: float) -> float:
     except (TypeError, ValueError):
         return float(default)
 
+
+def _env_int(name: str, default: int) -> int:
+    """Read an int environment variable with safe fallback."""
+    try:
+        return int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return int(default)
+
 class Config:
     """Application configuration class."""
     
@@ -74,6 +82,15 @@ class Config:
     WEATHER_API_URL = os.getenv('WEATHER_API_URL', 'https://api.weatherapi.com/v1/current.json')
     WEATHER_FORECAST_API_URL = os.getenv('WEATHER_FORECAST_API_URL', 'https://api.weatherapi.com/v1/forecast.json')
     WEATHER_ASTRONOMY_API_URL = os.getenv('WEATHER_ASTRONOMY_API_URL', 'https://api.weatherapi.com/v1/astronomy.json')
+
+    # Network resilience settings (critical for no-VPN environments)
+    AMAP_HTTP_TIMEOUT_SEC = _env_float('AMAP_HTTP_TIMEOUT_SEC', 4.0)
+    AMAP_MAX_RETRIES = _env_int('AMAP_MAX_RETRIES', 1)
+    AMAP_RETRY_BASE_DELAY_SEC = _env_float('AMAP_RETRY_BASE_DELAY_SEC', 0.2)
+
+    # End-to-end fetch budgets to ensure partial-data responses are returned fast
+    ANALYSIS_FETCH_TIMEOUT_SEC = _env_float('ANALYSIS_FETCH_TIMEOUT_SEC', 10.0)
+    FEATURE_SERVICE_TIMEOUT_SEC = _env_float('FEATURE_SERVICE_TIMEOUT_SEC', 8.0)
 
 
 # Create a config instance

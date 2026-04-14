@@ -463,7 +463,7 @@ def _run_analysis(latitude, longitude, radius, location_context=None):
     # 🚀 PARALLEL FETCH - All services at once
     # POI, Roads, DEM, NDVI, Wind, River, Flood run simultaneously
     from concurrent.futures import ThreadPoolExecutor
-    from concurrent.futures import as_completed
+    from concurrent.futures import as_completed, TimeoutError
     
     # Define all fetch tasks with their methods and arguments
     fetch_tasks = []
@@ -484,6 +484,7 @@ def _run_analysis(latitude, longitude, radius, location_context=None):
         fetch_tasks.append(('flood', flood_service.get_flood_risk_analysis, (longitude, latitude, radius)))
     
     results = {}
+    fetch_timeout_sec = max(1.0, float(getattr(Config, 'ANALYSIS_FETCH_TIMEOUT_SEC', 10.0)))
     with ThreadPoolExecutor(max_workers=7) as pool:
         futures = {}
         
@@ -491,15 +492,28 @@ def _run_analysis(latitude, longitude, radius, location_context=None):
         for key, func, args in fetch_tasks:
             futures[pool.submit(func, *args)] = key
         
-        # Collect results as they complete
-        for future in as_completed(futures):
-            key = futures[future]
-            try:
-                results[key] = future.result()
-                logger.info(f"✓ {key.upper()} result collected")
-            except Exception as e:
-                logger.warning(f"⚠ {key.upper()} fetch failed: {e}")
-                results[key] = {}
+        # Collect results as they complete, but do not wait forever.
+        pending = set(futures.keys())
+        try:
+            for future in as_completed(pending, timeout=fetch_timeout_sec):
+                pending.discard(future)
+                key = futures[future]
+                try:
+                    results[key] = future.result()
+                    logger.info(f"✓ {key.upper()} result collected")
+                except Exception as e:
+                    logger.warning(f"⚠ {key.upper()} fetch failed: {e}")
+                    results[key] = {}
+        except TimeoutError:
+            logger.warning(
+                f"⚠ Parallel fetch budget exceeded ({fetch_timeout_sec:.1f}s); "
+                "continuing with available data"
+            )
+        finally:
+            for future in pending:
+                key = futures[future]
+                future.cancel()
+                results.setdefault(key, {})
     
     data_fetch_ms = round((time.monotonic() - pipeline_start) * 1000)
 
@@ -1777,5 +1791,13 @@ def internal_error(error):
 
 
 if __name__ == '__main__':
+    import sys
+    from datetime import datetime
+    
+    start_time = time.monotonic()
+    startup_log = f"✅ Startup complete in {time.monotonic() - start_time:.2f}s"
+    logger.info(startup_log)
+    print(startup_log)  # Print to console too
+    
     logger.info("Starting Feng Shui Analysis API Server...")
     app.run(debug=Config.DEBUG, host=Config.HOST, port=Config.PORT)

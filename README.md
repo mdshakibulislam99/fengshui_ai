@@ -99,7 +99,7 @@ This will generate synthetic data and train the Random Forest model. The model w
 ```bash
 python app.py
 ```
-Server will start at `http://localhost:5000`
+Server will start at `http://localhost:5001`
 
 ### 2. Frontend Setup
 

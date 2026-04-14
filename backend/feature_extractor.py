@@ -5,7 +5,7 @@ import threading
 from typing import Dict, List, Optional, Tuple
 import math
 import statistics
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
 
 logger = logging.getLogger(__name__)
 
@@ -205,6 +205,12 @@ def extract_features(poi_data: Dict[str, List[Dict]],
 
         # All 6 services run in a single pool (no GEE throttling - using China-accessible APIs only)
         all_results = {}
+        try:
+            from config import Config
+            service_timeout_sec = max(1.0, float(getattr(Config, 'FEATURE_SERVICE_TIMEOUT_SEC', 8.0)))
+        except Exception:
+            service_timeout_sec = 8.0
+
         with ThreadPoolExecutor(max_workers=6) as pool:
             futs = {
                 pool.submit(_fetch_dem):        'dem',
@@ -214,8 +220,22 @@ def extract_features(poi_data: Dict[str, List[Dict]],
                 pool.submit(_fetch_flood):      'flood',
                 pool.submit(_fetch_ndvi):       'ndvi',
             }
-            for fut in as_completed(futs):
-                all_results.update(fut.result())
+            pending = set(futs.keys())
+            try:
+                for fut in as_completed(pending, timeout=service_timeout_sec):
+                    pending.discard(fut)
+                    try:
+                        all_results.update(fut.result())
+                    except Exception as exc:
+                        logger.warning(f"⚠ Service future failed: {exc}")
+            except TimeoutError:
+                logger.warning(
+                    f"⚠ Feature service budget exceeded ({service_timeout_sec:.1f}s); "
+                    "continuing with partial service data"
+                )
+            finally:
+                for fut in pending:
+                    fut.cancel()
 
         # --- Apply DEM ---
         topography = all_results.get('dem')

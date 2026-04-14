@@ -19,7 +19,7 @@ def test_location(name, lat, lng, radius=500):
     
     try:
         response = requests.post(
-            'http://127.0.0.1:5000/api/analyze',
+            'http://127.0.0.1:5001/api/analyze',
             json=data,
             headers={'Content-Type': 'application/json'},
             timeout=60

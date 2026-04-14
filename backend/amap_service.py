@@ -8,13 +8,30 @@ import time
 from config import config
 
 logger = logging.getLogger(__name__)
+_AMAP_SKIP_LOGGED = False
 
 
 def _get_with_retry(url: str, params: Dict, timeout: int = 10) -> Optional[requests.Response]:
-    def _call():
-        return requests.get(url, params=params, timeout=timeout)
+    global _AMAP_SKIP_LOGGED
 
-    response = retry_amap_call(_call)
+    api_key = (config.AMAP_API_KEY or '').strip()
+    if not api_key or api_key == 'YOUR_AMAP_API_KEY_HERE':
+        if not _AMAP_SKIP_LOGGED:
+            logger.warning("AMap key is missing; skipping AMap requests and returning fallback data")
+            _AMAP_SKIP_LOGGED = True
+        return None
+
+    timeout_cap = float(getattr(config, 'AMAP_HTTP_TIMEOUT_SEC', 4.0))
+    effective_timeout = max(1.0, min(float(timeout), timeout_cap))
+
+    def _call():
+        return requests.get(url, params=params, timeout=effective_timeout)
+
+    response = retry_amap_call(
+        _call,
+        max_retries=getattr(config, 'AMAP_MAX_RETRIES', 1),
+        base_delay=getattr(config, 'AMAP_RETRY_BASE_DELAY_SEC', 0.2),
+    )
     if response is None:
         return None
 
@@ -575,7 +592,7 @@ def reverse_geocode_coordinates(longitude: float, latitude: float) -> Optional[D
         return None
 
 
-def retry_amap_call(func, max_retries=3, base_delay=0.5):
+def retry_amap_call(func, max_retries=1, base_delay=0.2):
     """
     Wrapper function for retrying AMap API calls with exponential backoff.
     
@@ -587,16 +604,19 @@ def retry_amap_call(func, max_retries=3, base_delay=0.5):
     Returns:
         Result of the function call or None on failure
     """
-    for attempt in range(max_retries):
+    attempts = max(1, int(max_retries))
+    delay_base = max(0.0, float(base_delay))
+
+    for attempt in range(attempts):
         try:
             return func()
-        except (requests.Timeout, requests.ConnectionError) as e:
-            if attempt == max_retries - 1:
-                logger.error(f"Failed after {max_retries} retries: {str(e)}")
+        except (requests.Timeout, requests.ConnectionError, requests.exceptions.SSLError) as e:
+            if attempt == attempts - 1:
+                logger.warning(f"AMap request failed after {attempts} attempt(s): {str(e)}")
                 return None
             
-            delay = base_delay * (2 ** attempt)
-            logger.warning(f"API call failed, retrying in {delay}s (attempt {attempt + 1}/{max_retries})")
+            delay = delay_base * (2 ** attempt)
+            logger.warning(f"AMap request failed, retrying in {delay:.2f}s (attempt {attempt + 1}/{attempts})")
             time.sleep(delay)
         except Exception as e:
             logger.error(f"Non-retryable error: {str(e)}")

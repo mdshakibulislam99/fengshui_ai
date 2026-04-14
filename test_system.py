@@ -9,7 +9,7 @@ print("=" * 70)
 print("TEST 1: Health Check")
 print("=" * 70)
 try:
-    response = requests.get('http://127.0.0.1:5000/health', timeout=5)
+    response = requests.get('http://127.0.0.1:5001/health', timeout=5)
     print(f"✅ Status Code: {response.status_code}")
     print(f"✅ Response: {response.json()}")
 except Exception as e:
@@ -32,7 +32,7 @@ print("\nSending request to /api/analyze...")
 
 try:
     response = requests.post(
-        'http://127.0.0.1:5000/api/analyze',
+        'http://127.0.0.1:5001/api/analyze',
         json=test_data,
         headers={'Content-Type': 'application/json'},
         timeout=30

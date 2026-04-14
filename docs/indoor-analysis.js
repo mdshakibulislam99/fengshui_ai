@@ -31,6 +31,7 @@ let currentEditingDesignId = null;
 let currentEditingDesignName = null;
 let latestDesignAnalysisResult = null;
 let latestUploadAnalysisResult = null;
+const INDOOR_API_BASE_URL = window.apiBaseUrl || 'http://127.0.0.1:5001';
 
 function getIndoorLang() {
     return (window.QiLang && window.QiLang.currentLang === 'zh') ? 'zh' : 'en';
@@ -519,7 +520,7 @@ async function analyzeDesign() {
     showIndoorLoading();
     
     try {
-        const response = await fetch('https://fengshui-ai.onrender.com/api/indoor-analyze', {
+        const response = await fetch(`${INDOOR_API_BASE_URL}/api/indoor-analyze`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestData)
@@ -2623,7 +2624,7 @@ async function analyzePhotos() {
         const source = hasGuidedCameraCaptures
             ? 'camera_guided'
             : (roomRecordedBlob ? 'camera_video' : 'photo_upload');
-        const response = await fetch('https://fengshui-ai.onrender.com/api/indoor-photo-analyze', {
+        const response = await fetch(`${INDOOR_API_BASE_URL}/api/indoor-photo-analyze`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

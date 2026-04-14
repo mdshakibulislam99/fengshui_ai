@@ -7,6 +7,7 @@ let uploadedPhotos = {
     west: null,
     floor: null
 };
+const INDOOR_CAMERA_API_BASE_URL = window.apiBaseUrl || 'http://127.0.0.1:5001';
 
 let roomCameraStream = null;
 let currentDirectionIndex = 0;
@@ -643,7 +644,7 @@ async function analyzeCameraCapture() {
     }
 
     try {
-        const response = await fetch('https://fengshui-ai.onrender.com/api/indoor-photo-analyze', {
+        const response = await fetch(`${INDOOR_CAMERA_API_BASE_URL}/api/indoor-photo-analyze`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

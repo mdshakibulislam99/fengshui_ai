@@ -301,4 +301,6 @@ class GEEFloodService:
         }
 
 
-flood_service = GEEFloodService()
+# Avoid creating a live GEE client at import-time.
+# Import-time authentication can block startup when external network/VPN is unavailable.
+flood_service = None

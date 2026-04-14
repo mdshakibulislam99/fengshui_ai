@@ -154,7 +154,7 @@ FLOOD_ENABLE = False
 **Testing (10 min):**
 ```bash
 # Test Wind disabled
-curl -X POST http://localhost:5000/api/analyze \
+curl -X POST http://localhost:5001/api/analyze \
   -d {"lat":39.9042,"lng":116.4074,"radius":1000}
 # Check response includes: building analysis, water score, vegetation
 # Missing: wind analysis (expected - disabled)
