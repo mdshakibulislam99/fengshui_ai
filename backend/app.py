@@ -46,35 +46,35 @@ import logging
 import math
 import ssl
 
-from amap_service import (
+from .amap_service import (
     geocode_address,
     get_input_tips,
     search_nearby_pois,
     get_road_network_data,
     reverse_geocode_coordinates
 )
-from feature_extractor import extract_features
-from scorer import calculate_feng_shui_score
-from config import Config
-from dem import DEMService
-from dem.config import DEMConfig
-from Hydroshed import HydroSHEDSService
-from Hydroshed.config import HydroSHEDSConfig
-from Hydroshed.china_river_service import ChinaRiverService
-from buildings_data import BuildingsService
-from buildings_data.config import BuildingsConfig
-from wind import ERA5WindService
-from wind.config import WindConfig
-from wind.cma_wind_service import CMAWindService
-from flood import GEEFloodService
-from flood.config import FloodConfig
-from flood.local_flood_service import LocalFloodService
-from ndvi import NDVIService
-from ndvi.config import NDVIConfig
-from indoor_analyzer import analyze_room_design, analyze_room_photos
-from personal_feng_shui import analyze_personal_feng_shui
-from chatbot_service import get_chatbot
-from expert_validation import (
+from .feature_extractor import extract_features
+from .scorer import calculate_feng_shui_score
+from .config import Config
+from .dem import DEMService
+from .dem.config import DEMConfig
+from .Hydroshed import HydroSHEDSService
+from .Hydroshed.config import HydroSHEDSConfig
+from .Hydroshed.china_river_service import ChinaRiverService
+from .buildings_data import BuildingsService
+from .buildings_data.config import BuildingsConfig
+from .wind import ERA5WindService
+from .wind.config import WindConfig
+from .wind.cma_wind_service import CMAWindService
+from .flood import GEEFloodService
+from .flood.config import FloodConfig
+from .flood.local_flood_service import LocalFloodService
+from .ndvi import NDVIService
+from .ndvi.config import NDVIConfig
+from .indoor_analyzer import analyze_room_design, analyze_room_photos
+from .personal_feng_shui import analyze_personal_feng_shui
+from .chatbot_service import get_chatbot
+from .expert_validation import (
     record_expert_assessment,
     get_expert_profile,
     get_learning_summary,

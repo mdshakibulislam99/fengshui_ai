@@ -44,7 +44,7 @@ class Config:
     # POI Categories for Feng Shui Analysis
     POI_CATEGORIES = {
         'parks': '110100|140700',  # Parks and green spaces
-        'water': '150500|150600',  # Rivers, lakes, water bodies
+        'water': '150100|150200|150300|150400|150500|150600',  # Fountains, channels, reservoirs, waterfalls, rivers, lakes/ponds
         'buildings': '120000',  # Commercial buildings
         'residential': '120300',  # Residential areas
         'transportation': '150700',  # Transportation facilities

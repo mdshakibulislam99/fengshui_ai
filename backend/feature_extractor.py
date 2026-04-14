@@ -308,6 +308,11 @@ def extract_features(poi_data: Dict[str, List[Dict]],
             features['hydrosheds_river_proximity'] = river_result['combined_score'] / 100.0
             features['hydrosheds_river_density'] = river_result['river_density_score'] / 100.0
             logger.info(f"✓ HydroSHEDS features extracted: river_proximity={features['hydrosheds_river_proximity']:.3f}")
+            
+            # If AMap water POIs returned 0, use HydroSHEDS river proximity instead
+            if features.get('water_proximity', 0.0) == 0.0 and features['hydrosheds_river_proximity'] > 0.1:
+                features['water_proximity'] = features['hydrosheds_river_proximity']
+                logger.info(f"✓ Water proximity updated from HydroSHEDS: {features['water_proximity']:.3f}")
         else:
             logger.warning("⚠ HydroSHEDS query failed or skipped, using neutral fallback")
             features['hydrosheds_river_proximity'] = 0.5
@@ -473,7 +478,8 @@ def calculate_green_area_ratio(parks: List[Dict], radius: int) -> float:
 def calculate_water_proximity(water_bodies: List[Dict], 
                               longitude: float, 
                               latitude: float,
-                              radius: int) -> float:
+                              radius: int,
+                              hydrosheds_fallback: Optional[float] = None) -> float:
     """
     Calculate water proximity score based on Feng Shui principles.
     Water represents wealth and prosperity but must be at optimal distance.
@@ -484,18 +490,26 @@ def calculate_water_proximity(water_bodies: List[Dict],
     - Moderate (800-1500m): Still beneficial but reduced effect
     - Far (>1500m): Minimal water energy influence
     
+    Falls back to HydroSHEDS river proximity if AMap water POIs are not found.
+    
     Args:
         water_bodies: List of water body POIs from AMap
         longitude: Center point longitude
         latitude: Center point latitude
         radius: Search radius in meters
+        hydrosheds_fallback: Optional HydroSHEDS river proximity score (0-1)
     
     Returns:
         Water proximity score (0-1), where 1 = optimal distance
     """
+    # If no AMap water POIs but HydroSHEDS has river data, use it
     if not water_bodies:
-        logger.info("Water proximity score: 0.000 (no water bodies found)")
-        return 0.0
+        if hydrosheds_fallback is not None and hydrosheds_fallback > 0.1:
+            logger.info(f"Water proximity score: {hydrosheds_fallback:.3f} (from HydroSHEDS river network fallback)")
+            return hydrosheds_fallback
+        else:
+            logger.info("Water proximity score: 0.000 (no water bodies found, no river network)")
+            return 0.0
     
     # Find closest water body using real distance data
     min_distance = radius

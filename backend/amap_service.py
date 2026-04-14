@@ -5,7 +5,7 @@ import logging
 from typing import Dict, List, Optional, Tuple
 import time
 
-from config import config
+from .config import config
 
 logger = logging.getLogger(__name__)
 _AMAP_SKIP_LOGGED = False
@@ -288,28 +288,23 @@ def search_nearby_pois(longitude: float, latitude: float, radius: int = 500) -> 
             else:
                 info = data.get('info', '')
                 logger.warning(f"POI search failed for {category_name}: {info}")
-                # Detect rate limit / quota exceeded
-                is_limited = 'CUQPS' in info or 'EXCEEDED' in info or 'LIMIT' in info or data.get('infocode') in ('10003', '10004')
+                # Detect rate limit / quota exceeded / service disabled
+                infocode = data.get('infocode')
+                is_limited = 'CUQPS' in info or 'EXCEEDED' in info or 'LIMIT' in info or infocode in ('10002', '10003', '10004')
                 return category_name, [], is_limited
                 
         except Exception as e:
             logger.error(f"Exception fetching {category_name}: {e}")
             return category_name, [], True
     
-    # Submit all category searches in parallel
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        futures = {
-            pool.submit(_fetch_poi_category, cat_name, cat_code): cat_name
-            for cat_name, cat_code in config.POI_CATEGORIES.items()
-        }
-        
-        for future in as_completed(futures):
-            cat_name, pois, is_limited = future.result()
-            poi_results[cat_name] = pois
-            if is_limited:
-                rate_limited_categories.append(cat_name)
-            logger.info(f"✓ {cat_name}: {len(pois)} POIs found")
+    # Submit all category searches SEQUENTIALLY to conserve quota
+    # (Other services run in parallel via parallel_data_fetcher, so overall speed is still good)
+    for cat_name, cat_code in config.POI_CATEGORIES.items():
+        cat_name_result, pois, is_limited = _fetch_poi_category(cat_name, cat_code)
+        poi_results[cat_name_result] = pois
+        if is_limited:
+            rate_limited_categories.append(cat_name_result)
+        logger.info(f"✓ {cat_name_result}: {len(pois)} POIs found")
     
     # --- Fallback chain for rate-limited categories: OSM only ---
     if rate_limited_categories:
@@ -324,6 +319,22 @@ def search_nearby_pois(longitude: float, latitude: float, radius: int = 500) -> 
                     logger.info(f"✓ OSM fallback provided {len(osm_data[cat])} POIs for {cat}")
         except Exception as e:
             logger.error(f"OSM fallback failed: {e}")
+    
+    # --- Filter water POIs: exclude parking/non-water items ---
+    if 'water' in poi_results:
+        original_count = len(poi_results['water'])
+        # Exclude parking lots, transportation, and other non-water tagged items
+        exclude_keywords = ['停车场', '停車場', 'parking', 'lot', '车场', '車場', '交通', 'transportation', 
+                           '车站', '車站', '码头', '碼頭', '港口', '汽车', '汽車', '地铁', '地鐵']
+        filtered_water = [
+            poi for poi in poi_results['water']
+            if not any(keyword in poi.get('name', '').lower() or 
+                      keyword in poi.get('type', '').lower()
+                      for keyword in exclude_keywords)
+        ]
+        poi_results['water'] = filtered_water
+        if len(filtered_water) < original_count:
+            logger.info(f"✓ Water filter: {original_count} → {len(filtered_water)} POIs (removed non-water items)")
     
     return poi_results
 

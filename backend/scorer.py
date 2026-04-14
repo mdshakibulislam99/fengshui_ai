@@ -6,8 +6,8 @@ import math
 from datetime import datetime
 import time
 
-from config import config
-from ai_model import predict_feng_shui_score
+from .config import config
+from .ai_model import predict_feng_shui_score
 
 logger = logging.getLogger(__name__)
 
