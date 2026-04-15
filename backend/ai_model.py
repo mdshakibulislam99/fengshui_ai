@@ -10,7 +10,7 @@ import logging
 import os
 from typing import Dict, List, Tuple, Optional
 
-from real_location_training_data import (
+from .real_location_training_data import (
     ARCHETYPE_FEATURE_CENTERS,
     REAL_LOCATION_FENG_SHUI_SEEDS,
 )

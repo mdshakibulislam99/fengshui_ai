@@ -4,6 +4,13 @@ Quick test script to verify the backend API is working correctly.
 import requests
 import json
 
+
+def _safe_score_text(value):
+    try:
+        return f"{float(value):.1f}/100"
+    except (TypeError, ValueError):
+        return "N/A"
+
 # Test 1: Health check
 print("=" * 70)
 print("TEST 1: Health Check")
@@ -42,33 +49,34 @@ try:
     
     if response.status_code == 200:
         result = response.json()
+        data = result.get('data', result)
         print("\n" + "=" * 70)
         print("RESULTS:")
         print("=" * 70)
-        print(f"🎯 Final Score: {result.get('final_score', 'N/A'):.1f}/100")
-        print(f"📊 Traditional Score: {result.get('traditional_score', 'N/A'):.1f}/100")
-        print(f"🤖 AI Score: {result.get('ai_score', 'N/A'):.1f}/100")
+        print(f"🎯 Final Score: {_safe_score_text(data.get('final_score'))}")
+        print(f"📊 Traditional Score: {_safe_score_text(data.get('traditional_score'))}")
+        print(f"🤖 AI Score: {_safe_score_text(data.get('ai_score'))}")
         
         print("\n📈 Category Scores:")
-        category_scores = result.get('category_scores', {})
+        category_scores = data.get('category_scores', {})
         for key, value in category_scores.items():
-            print(f"  • {key}: {value:.1f}/100")
+            print(f"  • {key}: {_safe_score_text(value)}")
         
         print("\n🔮 Five Elements:")
-        five_elements = result.get('five_elements', {})
+        five_elements = data.get('five_elements', {})
         for element, value in five_elements.items():
             if element != 'overall_score':
-                print(f"  • {element}: {value:.1f}/100")
+                print(f"  • {element}: {_safe_score_text(value)}")
         
-        print(f"\n☯️ Yin-Yang Balance: {result.get('yin_yang_balance', 'N/A'):.1f}/100")
-        print(f"🌊 Qi Flow Score: {result.get('qi_flow_score', 'N/A'):.1f}/100")
+        print(f"\n☯️ Yin-Yang Balance: {_safe_score_text(data.get('yin_yang_balance'))}")
+        print(f"🌊 Qi Flow Score: {_safe_score_text(data.get('qi_flow_score'))}")
         
         print("\n💡 Top 3 Explanations:")
-        for i, exp in enumerate(result.get('explanations', [])[:3], 1):
+        for i, exp in enumerate(data.get('explanations', [])[:3], 1):
             print(f"  {i}. {exp}")
         
         print("\n✨ Top 3 Suggestions:")
-        for i, sug in enumerate(result.get('suggestions', [])[:3], 1):
+        for i, sug in enumerate(data.get('suggestions', [])[:3], 1):
             print(f"  {i}. {sug}")
         
         print("\n" + "=" * 70)

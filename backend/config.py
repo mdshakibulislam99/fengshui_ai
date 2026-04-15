@@ -26,9 +26,9 @@ class Config:
     
     # AMap API Configuration
     # Web Service key — Python backend REST calls (geocoding, POI search, etc.)
-    AMAP_API_KEY = os.getenv('AMAP_API_KEY', 'YOUR_AMAP_API_KEY_HERE')
+    AMAP_API_KEY = os.getenv('AMAP_API_KEY', '1f2001fa608d58a15fc8293bb202f808')
     # Web JS key + security key — browser map, tiles, panorama street view
-    AMAP_WEB_JS_KEY = os.getenv('AMAP_WEB_JS_KEY', os.getenv('AMAP_API_KEY', 'YOUR_AMAP_API_KEY_HERE'))
+    AMAP_WEB_JS_KEY = os.getenv('AMAP_WEB_JS_KEY', os.getenv('AMAP_API_KEY', '1f2001fa608d58a15fc8293bb202f808'))
     AMAP_SECURITY_KEY = os.getenv('AMAP_SECURITY_KEY', '')
     
     # API Endpoints

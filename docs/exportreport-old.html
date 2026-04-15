@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QiMatrix Export Report</title>
+    <style>
+        :root {
+            --ei-primary: #1f3d2b;
+            --ei-accent: #5f7d6a;
+            --ei-bg: #f6f8f7;
+            --ei-border: #e3e6e4;
+            --ei-text: #22312b;
+            --ei-text-soft: #5d6c65;
+            --ei-card: #ffffff;
+            --ei-shadow: 0 4px 12px rgba(31, 61, 43, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--ei-bg);
+            color: var(--ei-text);
+        }
+
+        .report-shell {
+            max-width: 1000px;
+            margin: 0;
+            padding: 24px;
+        }
+
+        .card {
+            background: var(--ei-card);
+            border: 1px solid var(--ei-border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--ei-shadow);
+        }
+
+        h1, h2, h3 {
+            margin: 0 0 12px 0;
+            color: var(--ei-primary);
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        h3 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--ei-text-soft);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+
+        .header-section {
+            border-bottom: 1px solid var(--ei-border);
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+        }
+
+        .header-brand {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--ei-primary);
+            margin: 0 0 4px 0;
+        }
+
+        .header-subtitle {
+            font-size: 13px;
+            color: var(--ei-text-soft);
+            margin: 0;
+        }
+
+        .header-meta {
+            font-size: 11px;
+            color: var(--ei-text-soft);
+            margin-top: 8px;
+        }
+
+        /* Overall Section */
+        .overall-container {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 20px;
+        }
+
+        .score-gauge {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-weight: 700;
+            border: 6px solid rgba(31, 61, 43, 0.15);
+            position: relative;
+        }
+
+        .score-gauge .score-value {
+            font-size: 48px;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .score-gauge .score-label {
+            font-size: 12px;
+            color: var(--ei-text-soft);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .overall-info {
+            flex: 1;
+        }
+
+        .overall-status {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--ei-primary);
+            margin: 0 0 8px 0;
+        }
+
+        .mode-tag {
+            display: inline-block;
+            background: rgba(31, 61, 43, 0.08);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--ei-text-soft);
+            margin-bottom: 12px;
+        }
+
+        .grade-legend {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--ei-text-soft);
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* Grid layouts */
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .metric-box {
+            border: 1px solid var(--ei-border);
+            border-radius: 8px;
+            padding: 12px;
+            background: #fafbfa;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--ei-text-soft);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--ei-primary);
+            margin: 0;
+        }
+
+        .metric-value.small {
+            font-size: 18px;
+        }
+
+        .metric-value.tiny {
+            font-size: 14px;
+        }
+
+        .insights-list {
+            list-style: none;
+            margin: 12px 0 0 0;
+            padding: 0;
+        }
+
+        .insights-list li {
+            border-left: 3px solid var(--ei-primary);
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: var(--ei-text);
+            background: rgba(31, 61, 43, 0.02);
+        }
+
+        .insights-list li:last-child {
+            margin-bottom: 0;
+        }
+
+        .empty-state {
+            padding: 20px;
+            text-align: center;
+            color: var(--ei-text-soft);
+            font-size: 13px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .btn {
+            border: 1px solid var(--ei-border);
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #fff;
+            color: var(--ei-primary);
+        }
+
+        .btn.primary {
+            background: var(--ei-primary);
+            border-color: var(--ei-primary);
+            color: #fff;
+        }
+
+        @media print {
+            body {
+                background: #fff;
+            }
+
+            .report-shell {
+                max-width: none;
+                margin: 0;
+                padding: 20px;
+            }
+
+            .card {
+                box-shadow: none;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            .actions {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .overall-container {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 16px;
+            }
+
+            .overall-info {
+                width: 100%;
+            }
+
+            .grade-legend {
+                justify-content: center;
+            }
+
+            .grid-3,
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="report-shell">
+        <div class="header-section">
+            <h1 class="header-brand">QiMatrix</h1>
+            <p class="header-subtitle">Feng Shui Analysis Export Report</p>
+            <div class="header-meta" id="metaInfo"></div>
+        </div>
+
+        <div class="card" id="overallSection"></div>
+
+        <div class="card" id="locationSection"></div>
+
+        <div class="card" id="scoresSection"></div>
+
+        <div class="card" id="insightsSection"></div>
+
+        <div class="actions">
+            <button class="btn" type="button" onclick="window.close()">Close</button>
+            <button class="btn primary" type="button" onclick="window.print()">Export as PDF</button>
+        </div>
+    </main>
+
+    <script>
+        function clampScore(value) {
+            const n = Number(value);
+            if (!Number.isFinite(n)) return 0;
+            return Math.max(0, Math.min(100, n));
+        }
+
+        function safeNumber(value, digits = 2) {
+            const n = Number(value);
+            if (!Number.isFinite(n)) return 'N/A';
+            return n.toFixed(digits);
+        }
+
+        function fmtDate(iso) {
+            const date = new Date(iso || Date.now());
+            if (Number.isNaN(date.getTime())) return new Date().toLocaleString();
+            return date.toLocaleString();
+        }
+
+        function fmtLatLng(lat, lng) {
+            const a = Number(lat);
+            const b = Number(lng);
+            if (!Number.isFinite(a) || !Number.isFinite(b)) return 'N/A';
+            return `${a.toFixed(5)}, ${b.toFixed(5)}`;
+        }
+
+        function getExportScoreGrade(score) {
+            const safe = clampScore(score);
+            if (safe >= 90) return { description: 'Excellent', color: '#059669' };
+            if (safe >= 80) return { description: 'Very Good', color: '#10b981' };
+            if (safe >= 70) return { description: 'Good', color: '#10b981' };
+            if (safe >= 60) return { description: 'Moderate', color: '#f59e0b' };
+            if (safe >= 50) return { description: 'Weak', color: '#eab308' };
+            return { description: 'Poor', color: '#eab308' };
+        }
+
+        function getExportOverallColor(payload) {
+            const score = clampScore(payload?.score?.final || 0);
+            const status = String(payload?.score?.status || '').trim().toLowerCase();
+            const grades = Array.isArray(payload?.grades) ? payload.grades : [];
+            const fromStatus = grades.find((g) => String(g.label || '').trim().toLowerCase() === status && g.color);
+            if (fromStatus) return fromStatus.color;
+            return getExportScoreGrade(score).color;
+        }
+
+        function readPayload() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const reportId = params.get('reportId');
+                if (reportId) {
+                    const reportKey = `qimatrix_export_report_${reportId}`;
+                    const localRaw = localStorage.getItem(reportKey);
+                    if (localRaw) {
+                        const localPayload = JSON.parse(localRaw);
+                        localStorage.removeItem(reportKey);
+                        return localPayload;
+                    }
+                }
+
+                const raw = sessionStorage.getItem('qimatrix_export_report_data');
+                if (!raw) return null;
+                return JSON.parse(raw);
+            } catch (error) {
+                console.error('Failed to parse export payload:', error);
+                return null;
+            }
+        }
+
+        function renderEmptyState() {
+            const root = document.getElementById('reportRoot');
+            root.innerHTML = `
+                <section class="report-card">
+                    <h2 class="title">Export Report</h2>
+                    <p class="empty">No analysis data found. Please return to Outdoor Analysis, run an analysis, then click Download PDF Report again.</p>
+                </section>
+            `;
+        }
+
+        function renderReport(payload) {
+            const meta = document.getElementById('metaInfo');
+            const overall = document.getElementById('overallSection');
+            const location = document.getElementById('locationSection');
+            const scores = document.getElementById('scoresSection');
+            const insights = document.getElementById('insightsSection');
+            const overallScore = Math.round(clampScore(payload.score?.final || 0));
+            const overallColor = getExportOverallColor(payload);
+
+            meta.innerHTML = `
+                <div><strong>Generated:</strong> ${fmtDate(payload.generatedAt)}</div>
+                <div><strong>Mode:</strong> ${payload.mode === 'polygon' ? 'Polygon Area' : 'Single Location'}</div>
+            `;
+
+            overall.innerHTML = `
+                <h2 class="title">Overall Feng Shui</h2>
+                <div class="score-head">
+                    <div class="score-pill" style="border-color:${overallColor}; color:${overallColor}; box-shadow: inset 0 0 0 3px ${overallColor}22;">${overallScore}</div>
+                    <div>
+                        <p class="status" style="color:${overallColor};">${payload.score?.status || 'N/A'}</p>
+                        <span class="mode-chip">${payload.mode === 'polygon' ? 'Area Analysis' : 'Point Analysis'}</span>
+                        <div class="legend">
+                            ${(payload.grades || []).map(grade => `
+                                <span class="legend-item"><span class="dot" style="background:${grade.color};"></span>${grade.label}</span>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const polygonBlock = payload.polygon ? `
+                <div class="metric">
+                    <span class="label">Polygon Vertices</span>
+                    <p class="value">${Number(payload.polygon.vertices || 0)}</p>
+                </div>
+                <div class="metric">
+                    <span class="label">Polygon Area (km²)</span>
+                    <p class="value">${safeNumber(payload.polygon.areaKm2, 3)}</p>
+                </div>
+                <div class="metric">
+                    <span class="label">Centroid</span>
+                    <p class="value" style="font-size:14px;">${fmtLatLng(payload.polygon.centroid?.latitude, payload.polygon.centroid?.longitude)}</p>
+                </div>
+            ` : '';
+
+            location.innerHTML = `
+                <h2 class="title">Location & Area</h2>
+                <div class="grid-3">
+                    <div class="metric">
+                        <span class="label">Address/Label</span>
+                        <p class="value" style="font-size:14px;">${payload.location?.label || 'Selected analysis location'}</p>
+                    </div>
+                    <div class="metric">
+                        <span class="label">Latitude, Longitude</span>
+                        <p class="value" style="font-size:14px;">${fmtLatLng(payload.location?.latitude, payload.location?.longitude)}</p>
+                    </div>
+                    <div class="metric">
+                        <span class="label">Radius (m)</span>
+                        <p class="value">${Number.isFinite(Number(payload.location?.radius)) ? Math.round(Number(payload.location.radius)) : 'N/A'}</p>
+                    </div>
+                    ${polygonBlock}
+                </div>
+            `;
+
+            const categoryEntries = Object.entries(payload.categoryScores || {})
+                .filter(([name]) => !['yin_yang_balance', 'five_elements_harmony', 'qi_flow'].includes(name));
+
+            const five = payload.fiveElements || {};
+
+            scores.innerHTML = `
+                <h2 class="title">Score Details</h2>
+                <div class="grid-3" style="margin-bottom:10px;">
+                    <div class="metric"><span class="label">Final Score</span><p class="value">${safeNumber(payload.score?.final, 1)}</p></div>
+                    <div class="metric"><span class="label">Traditional Score</span><p class="value">${safeNumber(payload.score?.traditional, 1)}</p></div>
+                    <div class="metric"><span class="label">AI Score</span><p class="value">${payload.score?.ai == null ? 'N/A' : safeNumber(payload.score.ai, 1)}</p></div>
+                    <div class="metric"><span class="label">Yin-Yang Balance</span><p class="value">${safeNumber(payload.yinYangBalance, 1)}</p></div>
+                    <div class="metric"><span class="label">Qi Flow</span><p class="value">${safeNumber(payload.qiFlowScore, 1)}</p></div>
+                    <div class="metric"><span class="label">Five Elements Overall</span><p class="value">${safeNumber(five.overall_score, 1)}</p></div>
+                </div>
+
+                <h3 class="title" style="font-size:14px; margin-top: 0;">Individual Category Scores</h3>
+                <div class="grid-3" style="margin-bottom:10px;">
+                    ${payload.individualCategories ? `
+                        <div class="metric"><span class="label">Orientation</span><p class="value">${safeNumber(payload.individualCategories.orientation, 1)}</p></div>
+                        <div class="metric"><span class="label">Building Harmony</span><p class="value">${safeNumber(payload.individualCategories.building_harmony, 1)}</p></div>
+                        <div class="metric"><span class="label">Road Accessibility</span><p class="value">${safeNumber(payload.individualCategories.road_accessibility, 1)}</p></div>
+                        <div class="metric"><span class="label">Environment</span><p class="value">${safeNumber(payload.individualCategories.environment, 1)}</p></div>
+                        <div class="metric"><span class="label">Green Space</span><p class="value">${safeNumber(payload.individualCategories.green_space, 1)}</p></div>
+                        <div class="metric"><span class="label">Water Element</span><p class="value">${safeNumber(payload.individualCategories.water_element, 1)}</p></div>
+                        <div class="metric"><span class="label">Spiritual Energy</span><p class="value">${safeNumber(payload.individualCategories.spiritual_energy, 1)}</p></div>
+                    ` : ''}
+                </div>
+
+                <h3 class="title" style="font-size:14px; margin-top: 0;">Five Elements</h3>
+                <div class="grid-3" style="margin-bottom:10px;">
+                    <div class="metric"><span class="label">Wood</span><p class="value">${safeNumber(five.wood, 0)}</p></div>
+                    <div class="metric"><span class="label">Fire</span><p class="value">${safeNumber(five.fire, 0)}</p></div>
+                    <div class="metric"><span class="label">Earth</span><p class="value">${safeNumber(five.earth, 0)}</p></div>
+                    <div class="metric"><span class="label">Metal</span><p class="value">${safeNumber(five.metal, 0)}</p></div>
+                    <div class="metric"><span class="label">Water</span><p class="value">${safeNumber(five.water, 0)}</p></div>
+                </div>
+
+                <h3 class="title" style="font-size:14px; margin-top: 0;">Category Breakdown</h3>
+                <div class="grid-3">
+                    ${categoryEntries.map(([key, val]) => `
+                        <div class="metric">
+                            <span class="label">${key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</span>
+                            <p class="value">${safeNumber(val, 1)}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            insights.innerHTML = `
+                <h2 class="title">Insights & Recommendations</h2>
+                <div class="grid-2">
+                    <div>
+                        <h3 class="title" style="font-size:14px; margin-top:0;">Key Findings</h3>
+                        <ul class="list">
+                            ${(payload.explanations || []).length
+                                ? payload.explanations.map(item => `<li>${item}</li>`).join('')
+                                : '<li>No findings available.</li>'}
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="title" style="font-size:14px; margin-top:0;">Recommendations</h3>
+                        <ul class="list">
+                            ${(payload.suggestions || []).length
+                                ? payload.suggestions.map(item => `<li>${item}</li>`).join('')
+                                : '<li>No recommendations available.</li>'}
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Function to ensure all content is rendered before printing
+        function triggerPrint() {
+            // Force layout reflow to ensure all elements are rendered
+            const reportRoot = document.getElementById('reportRoot');
+            if (reportRoot) {
+                // Force a reflow
+                void reportRoot.offsetHeight;
+                // Wait for browser to finish rendering
+                requestAnimationFrame(function() {
+                    setTimeout(function() {
+                        window.print();
+                    }, 300);
+                });
+            }
+        }
+
+        // Wait for DOM to be fully ready
+        function initializeReport() {
+            const payload = readPayload();
+            if (!payload) {
+                renderEmptyState();
+            } else {
+                renderReport(payload);
+                // Trigger print after content is fully rendered
+                triggerPrint();
+            }
+        }
+
+        // Handle initialization
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeReport);
+        } else {
+            // DOM already loaded
+            initializeReport();
+        }
+    </script>
+</body>
+</html>

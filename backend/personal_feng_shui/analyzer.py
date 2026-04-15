@@ -451,7 +451,7 @@ def _generate_ai_recommendations(analysis_result: Dict, user_profile: Dict) -> L
     Returns structured recommendations or falls back to classical ones if API unavailable.
     """
     try:
-        from config import Config
+        from ..config import Config
         
         # Check if DeepSeek is configured
         api_key = Config.DEEPSEEK_API_KEY

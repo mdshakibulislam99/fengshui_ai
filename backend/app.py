@@ -39,6 +39,14 @@ def _maybe_reexec_supported_python() -> None:
 if __name__ == '__main__':
     _maybe_reexec_supported_python()
 
+# Support direct execution from backend/ (python app.py) as well as module mode
+# (python -m backend.app) by ensuring package context for relative imports.
+if __package__ in (None, ''):
+    project_root = Path(__file__).resolve().parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    __package__ = 'backend'
+
 from flask import Flask, request, jsonify, g
 from flask_cors import CORS
 from cachetools import TTLCache
@@ -381,7 +389,7 @@ def _heat_index_c(temp_c, humidity):
 def get_config():
     """Return frontend configuration including AMap Web JS API key."""
     try:
-        from config import config
+        from .config import config
         return success_response({
             "amap_web_key": config.AMAP_WEB_JS_KEY,
             "amap_security_key": config.AMAP_SECURITY_KEY or "",

@@ -3,7 +3,7 @@ Indoor Room Feng Shui Analysis Backend
 Handles design-based and photo-based room analysis
 """
 
-from indoor_ai_model import predict_indoor_score
+from .indoor_ai_model import predict_indoor_score
 
 
 def _to_ai_features(

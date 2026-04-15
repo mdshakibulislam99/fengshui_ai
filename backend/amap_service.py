@@ -311,7 +311,7 @@ def search_nearby_pois(longitude: float, latitude: float, radius: int = 500) -> 
         logger.info(f"⚠️ AMap rate-limited {len(rate_limited_categories)} categories: {rate_limited_categories}")
         logger.info(f"🌍 Falling back to OpenStreetMap Overpass API...")
         try:
-            from osm_fallback import search_nearby_pois_osm
+            from .osm_fallback import search_nearby_pois_osm
             osm_data = search_nearby_pois_osm(longitude, latitude, radius, rate_limited_categories)
             for cat in rate_limited_categories:
                 if osm_data.get(cat):
@@ -425,7 +425,7 @@ def get_road_network_data(longitude: float, latitude: float, radius: int = 500) 
             if road_count < 5:
                 logger.info(f"⚠️ AMap returned only {road_count} roads (sparse), trying OSM fallback...")
                 try:
-                    from osm_fallback import get_road_network_data_osm
+                    from .osm_fallback import get_road_network_data_osm
                     osm_result = get_road_network_data_osm(longitude, latitude, radius)
                     if osm_result.get('road_count', 0) >= 5:
                         logger.info(f"✅ OSM returned {osm_result['road_count']} roads, using OSM data")
@@ -446,7 +446,7 @@ def get_road_network_data(longitude: float, latitude: float, radius: int = 500) 
             if 'CUQPS' in info or 'EXCEEDED' in info or 'LIMIT' in info or 'error' in info.lower():
                 logger.info("🌍 Falling back to OSM for road network data...")
                 try:
-                    from osm_fallback import get_road_network_data_osm
+                    from .osm_fallback import get_road_network_data_osm
                     return get_road_network_data_osm(longitude, latitude, radius)
                 except Exception as osm_e:
                     logger.error(f"OSM road fallback failed: {osm_e}")

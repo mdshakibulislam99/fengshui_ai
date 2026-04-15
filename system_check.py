@@ -106,12 +106,12 @@ def check_imports():
     print_header("IMPORT CHECK")
     
     modules_to_check = [
-        ("buildings_data", "BuildingsService"),
-        ("buildings_data.config", "BuildingsConfig"),
-        ("buildings_data.buildings_service", "BuildingsService"),
-        ("amap_service", "geocode_address"),
-        ("feature_extractor", "extract_features"),
-        ("config", "Config"),
+        ("backend.buildings_data", "BuildingsService"),
+        ("backend.buildings_data.config", "BuildingsConfig"),
+        ("backend.buildings_data.buildings_service", "BuildingsService"),
+        ("backend.amap_service", "geocode_address"),
+        ("backend.feature_extractor", "extract_features"),
+        ("backend.config", "Config"),
     ]
     
     all_imported = True
@@ -138,8 +138,8 @@ def check_buildings_service():
     print_header("BUILDINGS SERVICE CHECK")
     
     try:
-        from buildings_data.buildings_service import BuildingsService
-        from buildings_data.config import BuildingsConfig
+        from backend.buildings_data.buildings_service import BuildingsService
+        from backend.buildings_data.config import BuildingsConfig
         
         print_info("Attempting to instantiate BuildingsService...")
         service = BuildingsService()
@@ -166,7 +166,7 @@ def check_feature_extractor():
     
     try:
         import inspect
-        from feature_extractor import extract_features
+        from backend.feature_extractor import extract_features
         
         # Get function signature
         sig = inspect.signature(extract_features)
@@ -205,8 +205,8 @@ def check_app_integration():
             app_content = f.read()
         
         checks = [
-            ("from buildings_data import BuildingsService", "BuildingsService import"),
-            ("from buildings_data.config import BuildingsConfig", "BuildingsConfig import"),
+            ("from .buildings_data import BuildingsService", "BuildingsService import"),
+            ("from .buildings_data.config import BuildingsConfig", "BuildingsConfig import"),
             ("BuildingsService()", "BuildingsService instantiation"),
             ("buildings_service=buildings_service", "buildings_service parameter"),
         ]

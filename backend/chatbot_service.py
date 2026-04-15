@@ -10,7 +10,7 @@ import time
 import hashlib
 import re
 from typing import Dict, List, Any, Optional
-from config import Config
+from .config import Config
 
 logger = logging.getLogger(__name__)
 

@@ -700,7 +700,7 @@ def calculate_feng_shui_score(features: Dict, location_context: Optional[Dict] =
 
     if deepseek_alignment_enabled and remaining_budget > 0.9:
         try:
-            from chatbot_service import get_chatbot
+            from .chatbot_service import get_chatbot
 
             configured_timeout = max(0.8, float(getattr(config, 'DEEPSEEK_SCORE_TIMEOUT_SEC', 2.2)))
             deepseek_timeout = min(configured_timeout, max(0.8, remaining_budget - 0.2))
