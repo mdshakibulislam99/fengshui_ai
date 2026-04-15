@@ -254,6 +254,67 @@ function escapeHtml(text) {
         .replaceAll("'", '&#039;');
 }
 
+function getIndoorLang() {
+    return (window.QiLang && window.QiLang.currentLang === 'zh') ? 'zh' : 'en';
+}
+
+function translateIndoorText(text) {
+    const raw = String(text || '');
+    if (!raw || getIndoorLang() !== 'zh') return raw;
+
+    let output = raw.replace(/\s+/g, ' ').trim();
+    const replacements = [
+        [/\bElement Balance\b/gi, '元素平衡'],
+        [/\bEnergy Flow \(Yin-Yang\)\b/gi, '能量流动（阴阳）'],
+        [/\bSpace Flow & Layout\b/gi, '空间流动与布局'],
+        [/\bFunctional Design\b/gi, '功能性设计'],
+        [/\bHigh\b/gi, '高'],
+        [/\bMedium\b/gi, '中'],
+        [/\bLow\b/gi, '低'],
+        [/\bYin-Yang Theory\b/gi, '阴阳理论'],
+        [/\bEnergy Balance\b/gi, '能量平衡'],
+        [/\bFive Elements Theory\b/gi, '五行理论'],
+        [/\bRoom Design Analysis\b/gi, '房间设计分析'],
+        [/\bSpace Planning\b/gi, '空间规划'],
+        [/\bCommand Position Rules\b/gi, '主位规则'],
+        [/\bQi Flow Principles\b/gi, '气流运行原则'],
+        [/\bFive Elements Color Mapping\b/gi, '五行色彩映射'],
+        [/\bClutter Impact Model\b/gi, '杂乱影响模型'],
+        [/\bInterior Lighting Heuristics\b/gi, '室内采光启发规则'],
+        [/\bPhoto Upload Analysis\b/gi, '照片上传分析'],
+        [/\bCamera Capture Analysis\b/gi, '相机捕捉分析'],
+        [/\bRoom Type Analysis\b/gi, '房间类型分析'],
+        [/\bElement Properties\b/gi, '元素属性'],
+        [/\bFeng Shui Principles\b/gi, '风水原则'],
+        [/\bBest Practices\b/gi, '最佳实践'],
+        [/Add more wood elements \(plants, furniture\) for growth energy/gi, '增加木元素（植物、木质家具）以提升生长能量'],
+        [/Include fire elements \(candles, red colors\) for passion and warmth/gi, '加入火元素（蜡烛、暖色）以增强热情与温度'],
+        [/Add water elements \(fountain, mirror\) for flow and prosperity/gi, '加入水元素（喷泉、镜子）以增强流动与财运'],
+        [/Incorporate earth elements \(crystals, pottery\) for stability/gi, '加入土元素（水晶、陶器）以增强稳定性'],
+        [/Include metal elements \(clocks, metal frames\) for clarity/gi, '加入金元素（时钟、金属饰件）以增强清晰与秩序'],
+        [/Balance yang energy with softer, yin elements \(curtains, rugs\)/gi, '用更柔和的阴性元素（窗帘、地毯）平衡阳性能量'],
+        [/Add more yang energy with lighting and active elements/gi, '增加照明与动态元素以提升阳性能量'],
+        [/Consider decluttering - too many items can block energy flow/gi, '建议减少杂物，过多物品会阻碍气流'],
+        [/Add plants for fresh air and positive energy/gi, '增加植物以改善空气并提升正向能量'],
+        [/⚠️\s*Avoid placing mirrors directly facing the bed/gi, '⚠️ 避免镜子正对床铺'],
+        [/✓?\s*Your room design shows good feng shui balance!/gi, '✓ 您的房间设计呈现良好的风水平衡'],
+        [/Increase natural light access and layer warm ambient lighting to activate healthy qi\.?/gi, '增加自然采光并叠加暖光环境照明，以激活健康气场。'],
+        [/Clear circulation routes between doorway, windows, and key furniture to support smoother energy flow\.?/gi, '清理门口、窗边与关键家具之间的动线，提升气流顺畅度。'],
+        [/Balance strong tones with earth and wood colors to stabilize the five elements\.?/gi, '用土色与木色平衡强烈色调，稳定五行能量。'],
+        [/Reposition major furniture into command positions facing the room entry where possible\.?/gi, '尽量将主要家具调整到可见入口的主位位置。'],
+        [/Reduce visible clutter and organize storage to prevent stagnant qi pockets\.?/gi, '减少可见杂物并优化收纳，避免气场停滞。'],
+        [/Upload all five directions \(north, south, east, west, floor plan\) for a more complete analysis\.?/gi, '上传北、南、东、西和地面五个方向可获得更完整分析。'],
+        [/Room energy profile is balanced\. Maintain clear pathways, healthy light, and element diversity\.?/gi, '房间能量结构较均衡，请继续保持通畅动线、健康采光与元素多样性。'],
+        [/Upload at least one clear room photo for analysis\.?/gi, '请上传至少一张清晰的房间照片进行分析。']
+    ];
+
+    replacements.forEach(([pattern, zh]) => {
+        output = output.replace(pattern, zh);
+    });
+
+    return output;
+}
+
 function formatScoreLabel(key) {
     return key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 }
@@ -485,12 +546,20 @@ function displayCameraResults(analysis) {
 
     const analysisCards = document.getElementById('cameraAnalysisCards');
     if (analysisCards) {
+        const copy = {
+            insightsTitle: getIndoorLang() === 'zh' ? '风水 AI 洞察' : 'Feng Shui AI Insights',
+            confidence: getIndoorLang() === 'zh' ? '置信度' : 'Confidence',
+            dataSources: getIndoorLang() === 'zh' ? '数据来源' : 'Data sources',
+            alreadyGood: getIndoorLang() === 'zh' ? '当前优势' : 'What Is Already Good',
+            needsImprovement: getIndoorLang() === 'zh' ? '待优化项' : 'What Needs Improvement',
+            overallFengShui: getIndoorLang() === 'zh' ? '综合风水' : 'Overall Feng Shui'
+        };
         analysisCards.innerHTML = `
             <div class="insights-header">
-                <h3>Feng Shui AI Insights</h3>
-                <p>Model-guided interpretation of camera-captured indoor factors, including score evidence and prioritized correction points.</p>
+                <h3>${copy.insightsTitle}</h3>
+                <p>${getIndoorLang() === 'zh' ? '基于模型的相机捕捉室内因子解读，包含评分依据与优先优化项。' : 'Model-guided interpretation of camera-captured indoor factors, including score evidence and prioritized correction points.'}</p>
                 <div class="insight-score-pill" style="display:inline-flex; margin-top:8px; background:${getStatusColorIndoor(scoreMap.overall)}1a; border-color:${getStatusColorIndoor(scoreMap.overall)}55; color:${getStatusColorIndoor(scoreMap.overall)};">
-                    Overall Feng Shui: ${Math.round(scoreMap.overall)} • ${getScoreHealthLabelIndoor(scoreMap.overall)}
+                    ${copy.overallFengShui}: ${Math.round(scoreMap.overall)} • ${getScoreHealthLabelIndoor(scoreMap.overall)}
                 </div>
             </div>
             <div class="insights-topic-grid">
@@ -501,27 +570,27 @@ function displayCameraResults(analysis) {
                             <div class="insight-topic-head">
                                 <div class="insight-topic-title-wrap">
                                     <span class="insight-index">${index + 1}</span>
-                                    <h4>${escapeHtml(factor.title)}</h4>
+                                    <h4>${escapeHtml(translateIndoorText(factor.title))}</h4>
                                 </div>
                                 <div class="insight-score-pill" style="background:${getStatusColorIndoor(scoreRounded)}1a; border-color:${getStatusColorIndoor(scoreRounded)}55; color:${getStatusColorIndoor(scoreRounded)};">
                                     ${scoreRounded} • ${getScoreHealthLabelIndoor(scoreRounded)}
                                 </div>
                             </div>
                             <div class="insight-block">
-                                <p class="insight-meta"><strong>Confidence:</strong> ${escapeHtml(factor.confidence || 'Medium')}</p>
-                                ${factor.dataSources && factor.dataSources.length ? `<p class="insight-meta"><strong>Data sources:</strong> ${factor.dataSources.map(s => escapeHtml(s)).join(' • ')}</p>` : ''}
-                                ${factor.mainIssue ? `<p class="insight-meta">${escapeHtml(factor.mainIssue)}</p>` : ''}
+                                <p class="insight-meta"><strong>${copy.confidence}:</strong> ${escapeHtml(translateIndoorText(factor.confidence || 'Medium'))}</p>
+                                ${factor.dataSources && factor.dataSources.length ? `<p class="insight-meta"><strong>${copy.dataSources}:</strong> ${factor.dataSources.map(s => escapeHtml(translateIndoorText(s))).join(' • ')}</p>` : ''}
+                                ${factor.mainIssue ? `<p class="insight-meta">${escapeHtml(translateIndoorText(factor.mainIssue))}</p>` : ''}
                             </div>
                             ${factor.current && factor.current.length ? `
                                 <div class="insight-block">
-                                    <h5>What Is Already Good</h5>
-                                    <p>${factor.current.map(item => escapeHtml(item)).join(', ')}</p>
+                                    <h5>${copy.alreadyGood}</h5>
+                                    <p>${factor.current.map(item => escapeHtml(translateIndoorText(item))).join(', ')}</p>
                                 </div>
                             ` : ''}
                             ${factor.improve && factor.improve.length ? `
                                 <div class="insight-block">
-                                    <h5>What Needs Improvement</h5>
-                                    <p>${factor.improve.map(item => escapeHtml(item)).join(', ')}</p>
+                                    <h5>${copy.needsImprovement}</h5>
+                                    <p>${factor.improve.map(item => escapeHtml(translateIndoorText(item))).join(', ')}</p>
                                 </div>
                             ` : ''}
                         </article>
@@ -571,12 +640,17 @@ function displayCameraResults(analysis) {
 
     const elementAnalysis = document.getElementById('cameraElementAnalysis');
     if (elementAnalysis) {
+        const elementLabels = {
+            en: { earth: 'Earth', wood: 'Wood', water: 'Water', fire: 'Fire', metal: 'Metal' },
+            zh: { earth: '土', wood: '木', water: '水', fire: '火', metal: '金' }
+        };
+        const currentLang = getIndoorLang();
         elementAnalysis.innerHTML = `
             <div class="scores-grid element-scores-grid">
                 ${Object.entries(fiveElements).map(([element, value]) => `
                     <div class="score-card">
                         <span class="value" style="color: ${getStatusColorIndoor(value)};">${Math.round(value)}</span>
-                        <span class="label" style="text-transform: capitalize;">${element}</span>
+                        <span class="label">${elementLabels[currentLang][element] || element}</span>
                     </div>
                 `).join('')}
             </div>
@@ -588,7 +662,7 @@ function displayCameraResults(analysis) {
         recommendations.innerHTML = analysis.recommendations.map(rec => `
             <div class="recommendation-item" style="display:flex; gap:10px; padding:10px 12px; background:#f8fbf9; border-radius:10px; margin-bottom:10px;">
                 <span>💡</span>
-                <p style="margin:0; color: var(--ei-text);">${escapeHtml(rec)}</p>
+                <p style="margin:0; color: var(--ei-text);">${escapeHtml(translateIndoorText(rec))}</p>
             </div>
         `).join('');
     }

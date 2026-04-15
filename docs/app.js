@@ -2061,6 +2061,17 @@ function buildReportPayloadFromAnalysis(data) {
     const yinYangBalance = Number(firstFiniteNumber(data.yin_yang_balance, categoryScores.yin_yang_balance, 0) || 0);
     const qiFlowScore = Number(firstFiniteNumber(data.qi_flow_score, data.qi_flow, categoryScores.qi_flow, 0) || 0);
 
+    // Capture all individual category scores for detailed breakdown
+    const individualCategories = {
+        orientation: Number(categoryScores.orientation || 0),
+        building_harmony: Number(categoryScores.building_harmony || 0),
+        road_accessibility: Number(categoryScores.road_accessibility || 0),
+        environment: Number(categoryScores.environment || 0),
+        green_space: Number(categoryScores.green_space || 0),
+        water_element: Number(categoryScores.water_element || 0),
+        spiritual_energy: Number(categoryScores.spiritual_energy || 0)
+    };
+
     return {
         generatedAt: new Date().toISOString(),
         mode: polygon ? 'polygon' : 'location',
@@ -2085,11 +2096,12 @@ function buildReportPayloadFromAnalysis(data) {
             }
         } : null,
         categoryScores,
+        individualCategories,
         fiveElements,
         yinYangBalance,
         qiFlowScore,
-        explanations: Array.isArray(data.explanations) ? data.explanations.slice(0, 8) : [],
-        suggestions: Array.isArray(data.suggestions) ? data.suggestions.slice(0, 8) : [],
+        explanations: Array.isArray(data.explanations) ? data.explanations : [],
+        suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
         grades: SCORE_GRADES.map(grade => ({
             range: grade.range?.[getUiLang()] || grade.range?.en,
             label: grade.description?.[getUiLang()] || grade.description?.en,
@@ -2099,16 +2111,20 @@ function buildReportPayloadFromAnalysis(data) {
 }
 
 function exportAnalysisReport() {
-    if (!latestReportPayload) {
+    // Always rebuild payload from latest analysis data to ensure we have current values
+    if (!latestAnalysisData) {
         alert(tRuntime('Please run an analysis before exporting a report.', '请先运行分析，再导出报告。'));
         return;
     }
+
+    // Rebuild payload fresh from current analysis data
+    const freshPayload = buildReportPayloadFromAnalysis(latestAnalysisData);
 
     const reportId = `report_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const reportKey = `qimatrix_export_report_${reportId}`;
 
     try {
-        localStorage.setItem(reportKey, JSON.stringify(latestReportPayload));
+        localStorage.setItem(reportKey, JSON.stringify(freshPayload));
     } catch (error) {
         console.error('Failed to cache report payload:', error);
         alert(tRuntime('Failed to prepare report export. Please try again.', '准备导出报告失败，请重试。'));

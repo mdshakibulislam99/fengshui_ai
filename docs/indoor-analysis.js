@@ -134,13 +134,22 @@ function translateIndoorText(text) {
         [/\bFunctional Design\b/gi, '功能性设计'],
         [/\bHigh\b/gi, '高'],
         [/\bMedium\b/gi, '中'],
-        [/\bFive Elements Theory\b/gi, '五行理论'],
-        [/\bRoom Design Analysis\b/gi, '房间设计分析'],
+        [/\bLow\b/gi, '低'],
         [/\bYin-Yang Theory\b/gi, '阴阳理论'],
         [/\bEnergy Balance\b/gi, '能量平衡'],
+        [/\bFive Elements Theory\b/gi, '五行理论'],
+        [/\bRoom Design Analysis\b/gi, '房间设计分析'],
         [/\bSpace Planning\b/gi, '空间规划'],
-        [/\bFeng Shui Principles\b/gi, '风水原则'],
+        [/\bCommand Position Rules\b/gi, '主位规则'],
+        [/\bQi Flow Principles\b/gi, '气流运行原则'],
+        [/\bFive Elements Color Mapping\b/gi, '五行色彩映射'],
+        [/\bClutter Impact Model\b/gi, '杂乱影响模型'],
+        [/\bInterior Lighting Heuristics\b/gi, '室内采光启发规则'],
+        [/\bPhoto Upload Analysis\b/gi, '照片上传分析'],
+        [/\bCamera Capture Analysis\b/gi, '相机捕捉分析'],
         [/\bRoom Type Analysis\b/gi, '房间类型分析'],
+        [/\bElement Properties\b/gi, '元素属性'],
+        [/\bFeng Shui Principles\b/gi, '风水原则'],
         [/\bBest Practices\b/gi, '最佳实践'],
         [/Elements are distributed across the room/gi, '元素在房间中分布较均衡'],
         [/Energy flow is present/gi, '能量流动已形成'],
@@ -157,14 +166,15 @@ function translateIndoorText(text) {
         [/Consider decluttering - too many items can block energy flow/gi, '建议减少杂物，过多物品会阻碍气流'],
         [/Add plants for fresh air and positive energy/gi, '增加植物以改善空气并提升正向能量'],
         [/⚠️\s*Avoid placing mirrors directly facing the bed/gi, '⚠️ 避免镜子正对床铺'],
-        [/Your room design shows good feng shui balance!/gi, '您的房间设计呈现良好的风水平衡'],
+        [/✓?\s*Your room design shows good feng shui balance!/gi, '✓ 您的房间设计呈现良好的风水平衡'],
         [/Increase natural light access and layer warm ambient lighting to activate healthy qi\.?/gi, '增加自然采光并叠加暖光环境照明，以激活健康气场。'],
         [/Clear circulation routes between doorway, windows, and key furniture to support smoother energy flow\.?/gi, '清理门口、窗边与关键家具之间的动线，提升气流顺畅度。'],
         [/Balance strong tones with earth and wood colors to stabilize the five elements\.?/gi, '用土色与木色平衡强烈色调，稳定五行能量。'],
         [/Reposition major furniture into command positions facing the room entry where possible\.?/gi, '尽量将主要家具调整到可见入口的主位位置。'],
         [/Reduce visible clutter and organize storage to prevent stagnant qi pockets\.?/gi, '减少可见杂物并优化收纳，避免气场停滞。'],
         [/Upload all five directions \(north, south, east, west, floor plan\) for a more complete analysis\.?/gi, '上传北、南、东、西和地面五个方向可获得更完整分析。'],
-        [/Room energy profile is balanced\. Maintain clear pathways, healthy light, and element diversity\.?/gi, '房间能量结构较均衡，请继续保持通畅动线、健康采光与元素多样性。']
+        [/Room energy profile is balanced\. Maintain clear pathways, healthy light, and element diversity\.?/gi, '房间能量结构较均衡，请继续保持通畅动线、健康采光与元素多样性。'],
+        [/Upload at least one clear room photo for analysis\.?/gi, '请上传至少一张清晰的房间照片进行分析。']
     ];
 
     replacements.forEach(([pattern, zh]) => {
@@ -709,7 +719,7 @@ function renderIndoorResults(result) {
                         <div class="insight-topic-head">
                             <div class="insight-topic-title-wrap">
                                 <span class="insight-index">${index + 1}</span>
-                                <h4>${escapeHtml(factor.title)}</h4>
+                                <h4>${escapeHtml(translateIndoorText(factor.title))}</h4>
                             </div>
                             <div class="insight-score-pill" style="background:${getStatusColorIndoor(scoreRounded)}1a; border-color:${getStatusColorIndoor(scoreRounded)}55; color:${getStatusColorIndoor(scoreRounded)};">
                                 ${scoreRounded} • ${getScoreHealthLabelIndoor(scoreRounded)}
@@ -717,12 +727,12 @@ function renderIndoorResults(result) {
                         </div>
                         
                         <div class="insight-block">
-                            <p class="insight-meta"><strong>${copy.confidence}:</strong> ${escapeHtml(factor.confidence || i18nText('Medium', '中'))}</p>
-                            ${factor.dataSources && factor.dataSources.length ? `<p class="insight-meta"><strong>${copy.dataSources}:</strong> ${factor.dataSources.map(s => escapeHtml(s)).join(' • ')}</p>` : ''}
-                            ${factor.mainIssue ? `<p class="insight-meta">${escapeHtml(factor.mainIssue)}</p>` : ''}
+                            <p class="insight-meta"><strong>${copy.confidence}:</strong> ${escapeHtml(translateIndoorText(factor.confidence || i18nText('Medium', '中')))}</p>
+                            ${factor.dataSources && factor.dataSources.length ? `<p class="insight-meta"><strong>${copy.dataSources}:</strong> ${factor.dataSources.map(s => escapeHtml(translateIndoorText(s))).join(' • ')}</p>` : ''}
+                            ${factor.mainIssue ? `<p class="insight-meta">${escapeHtml(translateIndoorText(factor.mainIssue))}</p>` : ''}
                             ${factor.current && factor.current.length ? `
                                 <ul class="insight-mini-list">
-                                    ${factor.current.map(item => `<li>${escapeHtml(item)}</li>`).join('')}
+                                    ${factor.current.map(item => `<li>${escapeHtml(translateIndoorText(item))}</li>`).join('')}
                                 </ul>
                             ` : ''}
                         </div>
@@ -730,14 +740,14 @@ function renderIndoorResults(result) {
                         ${factor.current && factor.current.length ? `
                             <div class="insight-block">
                                 <h5>${copy.alreadyGood}</h5>
-                                <p>${factor.current.map(item => escapeHtml(item)).join(', ')}</p>
+                                <p>${factor.current.map(item => escapeHtml(translateIndoorText(item))).join(', ')}</p>
                             </div>
                         ` : ''}
                         
                         ${factor.improve && factor.improve.length ? `
                             <div class="insight-block">
                                 <h5>${copy.needsImprovement}</h5>
-                                <p>${factor.improve.map(item => escapeHtml(item)).join(', ')}</p>
+                                <p>${factor.improve.map(item => escapeHtml(translateIndoorText(item))).join(', ')}</p>
                             </div>
                         ` : ''}
                     </article>
@@ -810,12 +820,17 @@ function renderIndoorResults(result) {
     
     // Element Analysis
     const elementAnalysis = document.getElementById('elementAnalysis');
+    const elementLabels = {
+        en: { earth: 'Earth', wood: 'Wood', water: 'Water', fire: 'Fire', metal: 'Metal' },
+        zh: { earth: '土', wood: '木', water: '水', fire: '火', metal: '金' }
+    };
+    const currentLang = getIndoorLang();
     elementAnalysis.innerHTML = `
         <div class="scores-grid element-scores-grid">
             ${Object.entries(fiveElements).map(([element, value]) => `
                 <div class="score-card">
                     <span class="value" style="color: ${getStatusColorIndoor(value)};">${Math.round(value)}</span>
-                    <span class="label" style="text-transform: capitalize;">${element}</span>
+                    <span class="label">${elementLabels[currentLang][element] || element}</span>
                 </div>
             `).join('')}
         </div>
@@ -1192,11 +1207,12 @@ function clearElementDetails() {
         const icon = getElementIcon(item.type);
         const name = formatElementName(item.type);
         const element = item.fengShui?.element || elementFengShuiData[item.type]?.element || 'unknown';
+        const displayElement = formatDisplayValue(element);
         return `
             <button class="used-element-item" onclick="showUsedElementDetails(${index})" title="${i18nText('View', '查看')} ${name} ${i18nText('details', '详情')}">
                 <span class="used-element-icon">${icon}</span>
                 <span class="used-element-name">${name}</span>
-                <span class="used-element-tag">${element}</span>
+                <span class="used-element-tag">${displayElement}</span>
             </button>
         `;
     }).join('');
@@ -1718,7 +1734,7 @@ function updatePlacedItemsList() {
     if (!list) return;
     
     if (placedElements.length === 0) {
-        list.innerHTML = '<p class="empty-list">No items placed yet</p>';
+        list.innerHTML = '<p class="empty-list">' + i18nText('No items placed yet', '尚未放置任何物品') + '</p>';
         return;
     }
     
@@ -1726,7 +1742,7 @@ function updatePlacedItemsList() {
         <div class="placed-item">
             <span class="item-icon">${getElementIcon(item.type)}</span>
             <span class="item-name">${formatElementName(item.type)}</span>
-            <span class="item-element">${item.fengShui.element}</span>
+            <span class="item-element">${formatDisplayValue(item.fengShui?.element || 'unknown')}</span>
         </div>
     `).join('');
 }
@@ -2755,27 +2771,27 @@ function displayUploadResults(analysis) {
                             <div class="insight-topic-head">
                                 <div class="insight-topic-title-wrap">
                                     <span class="insight-index">${index + 1}</span>
-                                    <h4>${escapeHtml(factor.title)}</h4>
+                                    <h4>${escapeHtml(translateIndoorText(factor.title))}</h4>
                                 </div>
                                 <div class="insight-score-pill" style="background:${getStatusColorIndoor(scoreRounded)}1a; border-color:${getStatusColorIndoor(scoreRounded)}55; color:${getStatusColorIndoor(scoreRounded)};">
                                     ${scoreRounded} • ${getScoreHealthLabelIndoor(scoreRounded)}
                                 </div>
                             </div>
                             <div class="insight-block">
-                                <p class="insight-meta"><strong>${copy.confidence}:</strong> ${escapeHtml(factor.confidence || i18nText('Medium', '中'))}</p>
-                                ${factor.dataSources && factor.dataSources.length ? `<p class="insight-meta"><strong>${copy.dataSources}:</strong> ${factor.dataSources.map(s => escapeHtml(s)).join(' • ')}</p>` : ''}
-                                ${factor.mainIssue ? `<p class="insight-meta">${escapeHtml(factor.mainIssue)}</p>` : ''}
+                                <p class="insight-meta"><strong>${copy.confidence}:</strong> ${escapeHtml(translateIndoorText(factor.confidence || i18nText('Medium', '中')))}</p>
+                                ${factor.dataSources && factor.dataSources.length ? `<p class="insight-meta"><strong>${copy.dataSources}:</strong> ${factor.dataSources.map(s => escapeHtml(translateIndoorText(s))).join(' • ')}</p>` : ''}
+                                ${factor.mainIssue ? `<p class="insight-meta">${escapeHtml(translateIndoorText(factor.mainIssue))}</p>` : ''}
                             </div>
                             ${factor.current && factor.current.length ? `
                                 <div class="insight-block">
                                     <h5>${copy.alreadyGood}</h5>
-                                    <p>${factor.current.map(item => escapeHtml(item)).join(', ')}</p>
+                                    <p>${factor.current.map(item => escapeHtml(translateIndoorText(item))).join(', ')}</p>
                                 </div>
                             ` : ''}
                             ${factor.improve && factor.improve.length ? `
                                 <div class="insight-block">
                                     <h5>${copy.needsImprovement}</h5>
-                                    <p>${factor.improve.map(item => escapeHtml(item)).join(', ')}</p>
+                                    <p>${factor.improve.map(item => escapeHtml(translateIndoorText(item))).join(', ')}</p>
                                 </div>
                             ` : ''}
                         </article>
@@ -2824,13 +2840,18 @@ function displayUploadResults(analysis) {
 
     const elementAnalysis = document.getElementById('uploadElementAnalysis');
     if (elementAnalysis) {
+        const elementLabels = {
+            en: { earth: 'Earth', wood: 'Wood', water: 'Water', fire: 'Fire', metal: 'Metal' },
+            zh: { earth: '土', wood: '木', water: '水', fire: '火', metal: '金' }
+        };
+        const currentLang = getIndoorLang();
         elementAnalysis.innerHTML = `
             <div class="scores-grid element-scores-grid">
                 ${Object.entries(fiveElements).map(([element, value]) => `
                     <div class="score-card">
                         <span class="value">${Math.round(value)}</span>
                         <span class="score-indicator" style="background: ${getStatusColorIndoor(value)};"></span>
-                        <span class="label" style="text-transform: capitalize;">${element}</span>
+                        <span class="label">${elementLabels[currentLang][element] || element}</span>
                     </div>
                 `).join('')}
             </div>

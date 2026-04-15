@@ -13,7 +13,7 @@
             --ei-text: #22312b;
             --ei-text-soft: #5d6c65;
             --ei-card: #ffffff;
-            --ei-shadow: 0 8px 24px rgba(31, 61, 43, 0.08);
+            --ei-shadow: 0 4px 12px rgba(31, 61, 43, 0.08);
         }
 
         * {
@@ -28,177 +28,240 @@
         }
 
         .report-shell {
-            max-width: 980px;
-            margin: 20px auto;
-            padding: 0 14px 24px;
+            max-width: 1000px;
+            margin: 0;
+            padding: 24px;
         }
 
-        .report-card {
+        .card {
             background: var(--ei-card);
             border: 1px solid var(--ei-border);
-            border-radius: 14px;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
             box-shadow: var(--ei-shadow);
-            padding: 18px;
-            margin-bottom: 14px;
         }
 
-        .header-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .brand {
-            font-size: 26px;
-            font-weight: 700;
+        h1, h2, h3 {
+            margin: 0 0 12px 0;
             color: var(--ei-primary);
-            margin: 0;
         }
 
-        .subtitle {
-            margin: 4px 0 0;
-            color: var(--ei-text-soft);
-            font-size: 14px;
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
         }
 
-        .meta {
-            text-align: right;
-            color: var(--ei-text-soft);
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        .title {
+        h2 {
             font-size: 16px;
             font-weight: 700;
-            color: var(--ei-primary);
-            margin: 0 0 12px;
         }
 
-        .score-head {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 16px;
-            align-items: center;
+        h3 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--ei-text-soft);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
         }
 
-        .score-pill {
-            width: 92px;
-            height: 92px;
-            border-radius: 50%;
-            border: 7px solid #d7e4dc;
-            display: grid;
-            place-items: center;
-            color: var(--ei-primary);
-            font-size: 30px;
+        .header-section {
+            border-bottom: 1px solid var(--ei-border);
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+        }
+
+        .header-brand {
+            font-size: 28px;
             font-weight: 800;
+            color: var(--ei-primary);
+            margin: 0 0 4px 0;
         }
 
-        .status {
-            font-size: 26px;
-            font-weight: 700;
-            color: var(--ei-primary);
+        .header-subtitle {
+            font-size: 13px;
+            color: var(--ei-text-soft);
             margin: 0;
         }
 
-        .mode-chip {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 10px;
-            border-radius: 999px;
-            border: 1px solid var(--ei-border);
-            background: #f2f6f3;
-            font-size: 12px;
+        .header-meta {
+            font-size: 11px;
             color: var(--ei-text-soft);
-            margin-top: 6px;
-            font-weight: 600;
+            margin-top: 8px;
         }
 
-        .legend {
+        /* Overall Section */
+        .overall-container {
             display: flex;
-            gap: 10px;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 20px;
+        }
+
+        .score-gauge {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-weight: 700;
+            border: 6px solid rgba(31, 61, 43, 0.15);
+            position: relative;
+        }
+
+        .score-gauge .score-value {
+            font-size: 48px;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .score-gauge .score-label {
+            font-size: 12px;
+            color: var(--ei-text-soft);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .overall-info {
+            flex: 1;
+        }
+
+        .overall-status {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--ei-primary);
+            margin: 0 0 8px 0;
+        }
+
+        .mode-tag {
+            display: inline-block;
+            background: rgba(31, 61, 43, 0.08);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--ei-text-soft);
+            margin-bottom: 12px;
+        }
+
+        .grade-legend {
+            display: flex;
+            gap: 12px;
             flex-wrap: wrap;
             margin-top: 12px;
         }
 
         .legend-item {
-            display: inline-flex;
+            display: flex;
             align-items: center;
             gap: 6px;
             font-size: 11px;
-            color: var(--ei-text-soft);
             font-weight: 600;
+            color: var(--ei-text-soft);
         }
 
-        .dot {
-            width: 7px;
-            height: 7px;
+        .legend-dot {
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
+            flex-shrink: 0;
         }
 
+        /* Grid layouts */
         .grid-3 {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 14px;
         }
 
         .grid-2 {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 14px;
         }
 
-        .metric {
+        .metric-box {
             border: 1px solid var(--ei-border);
-            border-radius: 10px;
-            padding: 12px;
-            background: #fff;
+            border-radius: 8px;
+            padding: 14px;
+            background: #fafbfa;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 70px;
         }
 
-        .metric .label {
-            font-size: 12px;
+        .metric-label {
+            font-size: 11px;
+            font-weight: 600;
             color: var(--ei-text-soft);
-            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
             display: block;
+            line-height: 1.2;
         }
 
-        .metric .value {
-            font-size: 20px;
+        .metric-value {
+            font-size: 24px;
             font-weight: 700;
             color: var(--ei-primary);
             margin: 0;
+            line-height: 1;
         }
 
-        .list {
-            margin: 0;
-            padding: 0;
-            list-style: none;
-            display: grid;
-            gap: 8px;
+        .metric-value.small {
+            font-size: 18px;
         }
 
-        .list li {
-            border: 1px solid var(--ei-border);
-            border-radius: 10px;
-            padding: 10px 12px;
-            color: #304038;
+        .metric-value.tiny {
             font-size: 14px;
-            background: #fff;
+        }
+
+        .insights-list {
+            list-style: none;
+            margin: 12px 0 0 0;
+            padding: 0;
+        }
+
+        .insights-list li {
+            border-left: 3px solid var(--ei-primary);
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: var(--ei-text);
+            background: rgba(31, 61, 43, 0.02);
+        }
+
+        .insights-list li:last-child {
+            margin-bottom: 0;
+        }
+
+        .empty-state {
+            padding: 20px;
+            text-align: center;
+            color: var(--ei-text-soft);
+            font-size: 13px;
         }
 
         .actions {
             display: flex;
             gap: 10px;
             justify-content: flex-end;
+            margin-top: 20px;
         }
 
         .btn {
             border: 1px solid var(--ei-border);
-            border-radius: 10px;
-            height: 38px;
-            padding: 0 14px;
+            border-radius: 8px;
+            padding: 8px 16px;
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
@@ -212,73 +275,141 @@
             color: #fff;
         }
 
-        .empty {
-            color: var(--ei-text-soft);
-            font-size: 14px;
-            margin: 0;
-        }
-
         @media print {
             body {
                 background: #fff;
-            }
-
-            .report-shell {
-                max-width: none;
                 margin: 0;
                 padding: 0;
             }
 
-            .report-card {
-                box-shadow: none;
-                break-inside: avoid;
+            .report-shell {
+                max-width: none !important;
+                margin: 0 !important;
+                padding: 0.5in !important;
+            }
+
+            .header-section {
+                margin-bottom: 20px !important;
+                page-break-after: avoid;
+            }
+
+            .card {
+                box-shadow: none !important;
                 page-break-inside: avoid;
+                break-inside: avoid;
+                margin-bottom: 14px !important;
+                border: 1px solid var(--ei-border) !important;
+            }
+
+            .overall-container {
+                margin-bottom: 16px !important;
+            }
+
+            .score-gauge {
+                width: 120px !important;
+                height: 120px !important;
+                border-width: 5px !important;
+            }
+
+            .score-gauge .score-value {
+                font-size: 42px !important;
+            }
+
+            .grid-3,
+            .grid-2 {
+                gap: 10px !important;
+            }
+
+            .metric-box {
+                padding: 10px !important;
+            }
+
+            .metric-label {
+                font-size: 10px !important;
+                margin-bottom: 4px !important;
+            }
+
+            .metric-value {
+                font-size: 22px !important;
+            }
+
+            .metric-value.tiny {
+                font-size: 12px !important;
+            }
+
+            .insights-list li {
+                font-size: 12px !important;
+                padding: 6px 10px !important;
+                margin-bottom: 6px !important;
+            }
+
+            h1 {
+                font-size: 22px !important;
+                margin-bottom: 4px !important;
+            }
+
+            h2 {
+                font-size: 15px !important;
+                margin-bottom: 10px !important;
+            }
+
+            h3 {
+                font-size: 12px !important;
+                margin-bottom: 12px !important;
+            }
+
+            p {
+                margin: 0 !important;
             }
 
             .actions {
-                display: none;
+                display: none !important;
             }
         }
 
-        @media (max-width: 720px) {
+        @media (max-width: 768px) {
+            .overall-container {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 16px;
+            }
+
+            .overall-info {
+                width: 100%;
+            }
+
+            .grade-legend {
+                justify-content: center;
+            }
+
             .grid-3,
             .grid-2 {
                 grid-template-columns: 1fr;
-            }
-
-            .score-head {
-                grid-template-columns: 1fr;
-            }
-
-            .meta {
-                text-align: left;
             }
         }
     </style>
 </head>
 <body>
-    <main class="report-shell" id="reportRoot">
-        <section class="report-card">
-            <div class="header-row">
-                <div>
-                    <h1 class="brand">QiMatrix</h1>
-                    <p class="subtitle">Feng Shui Analysis Export Report</p>
-                </div>
-                <div class="meta" id="metaInfo"></div>
-            </div>
-        </section>
+    <main class="report-shell">
+        <div class="header-section">
+            <h1 class="header-brand">QiMatrix</h1>
+            <p class="header-subtitle">Feng Shui Analysis Export Report</p>
+            <div class="header-meta" id="metaInfo"></div>
+        </div>
 
-        <section class="report-card" id="overallSection"></section>
-        <section class="report-card" id="locationSection"></section>
-        <section class="report-card" id="scoresSection"></section>
-        <section class="report-card" id="insightsSection"></section>
+        <div class="card" id="overallSection"></div>
 
-        <section class="report-card">
-            <div class="actions">
-                <button class="btn" type="button" onclick="window.close()">Close</button>
-                <button class="btn primary" type="button" onclick="window.print()">Export as PDF</button>
-            </div>
-        </section>
+        <div class="card" id="locationSection"></div>
+
+        <div class="card" id="scoresSection"></div>
+
+        <div class="card" id="insightsSection"></div>
+
+        <div class="actions">
+            <button class="btn" type="button" onclick="window.close()">Close</button>
+            <button class="btn primary" type="button" onclick="window.print()">Export as PDF</button>
+        </div>
     </main>
 
     <script>
@@ -350,12 +481,9 @@
         }
 
         function renderEmptyState() {
-            const root = document.getElementById('reportRoot');
-            root.innerHTML = `
-                <section class="report-card">
-                    <h2 class="title">Export Report</h2>
-                    <p class="empty">No analysis data found. Please return to Outdoor Analysis, run an analysis, then click Download PDF Report again.</p>
-                </section>
+            document.getElementById('overallSection').innerHTML = `
+                <h2>Export Report</h2>
+                <p class="empty-state">No analysis data found. Please return to Outdoor Analysis, run an analysis, then click Download PDF Report again.</p>
             `;
         }
 
@@ -365,128 +493,213 @@
             const location = document.getElementById('locationSection');
             const scores = document.getElementById('scoresSection');
             const insights = document.getElementById('insightsSection');
+            
             const overallScore = Math.round(clampScore(payload.score?.final || 0));
             const overallColor = getExportOverallColor(payload);
+            const five = payload.fiveElements || {};
 
+            // Metadata
             meta.innerHTML = `
-                <div><strong>Generated:</strong> ${fmtDate(payload.generatedAt)}</div>
-                <div><strong>Mode:</strong> ${payload.mode === 'polygon' ? 'Polygon Area' : 'Single Location'}</div>
+                <strong>Generated:</strong> ${fmtDate(payload.generatedAt)} | 
+                <strong>Mode:</strong> ${payload.mode === 'polygon' ? 'Polygon Area' : 'Point Analysis'}
             `;
 
+            // Overall Section
             overall.innerHTML = `
-                <h2 class="title">Overall Feng Shui</h2>
-                <div class="score-head">
-                    <div class="score-pill" style="border-color:${overallColor}; color:${overallColor}; box-shadow: inset 0 0 0 3px ${overallColor}22;">${overallScore}</div>
-                    <div>
-                        <p class="status" style="color:${overallColor};">${payload.score?.status || 'N/A'}</p>
-                        <span class="mode-chip">${payload.mode === 'polygon' ? 'Area Analysis' : 'Point Analysis'}</span>
-                        <div class="legend">
+                <h2>Overall Feng Shui</h2>
+                <div class="overall-container">
+                    <div class="score-gauge" style="background: ${overallColor}15; border-color: ${overallColor};">
+                        <div class="score-value" style="color: ${overallColor};">${overallScore}</div>
+                        <div class="score-label">Score</div>
+                    </div>
+                    <div class="overall-info">
+                        <p class="overall-status" style="color: ${overallColor};">${payload.score?.status || 'N/A'}</p>
+                        <span class="mode-tag">${payload.mode === 'polygon' ? 'Area Analysis' : 'Point Analysis'}</span>
+                        <div class="grade-legend">
                             ${(payload.grades || []).map(grade => `
-                                <span class="legend-item"><span class="dot" style="background:${grade.color};"></span>${grade.label}</span>
+                                <span class="legend-item">
+                                    <span class="legend-dot" style="background: ${grade.color};"></span>
+                                    ${grade.label}
+                                </span>
                             `).join('')}
                         </div>
                     </div>
                 </div>
             `;
 
+            // Location Section
             const polygonBlock = payload.polygon ? `
-                <div class="metric">
-                    <span class="label">Polygon Vertices</span>
-                    <p class="value">${Number(payload.polygon.vertices || 0)}</p>
+                <div class="metric-box">
+                    <span class="metric-label">Polygon Vertices</span>
+                    <p class="metric-value">${Number(payload.polygon.vertices || 0)}</p>
                 </div>
-                <div class="metric">
-                    <span class="label">Polygon Area (km²)</span>
-                    <p class="value">${safeNumber(payload.polygon.areaKm2, 3)}</p>
+                <div class="metric-box">
+                    <span class="metric-label">Polygon Area (km²)</span>
+                    <p class="metric-value">${safeNumber(payload.polygon.areaKm2, 3)}</p>
                 </div>
-                <div class="metric">
-                    <span class="label">Centroid</span>
-                    <p class="value" style="font-size:14px;">${fmtLatLng(payload.polygon.centroid?.latitude, payload.polygon.centroid?.longitude)}</p>
+                <div class="metric-box">
+                    <span class="metric-label">Centroid</span>
+                    <p class="metric-value tiny">${fmtLatLng(payload.polygon.centroid?.latitude, payload.polygon.centroid?.longitude)}</p>
                 </div>
             ` : '';
 
             location.innerHTML = `
-                <h2 class="title">Location & Area</h2>
+                <h2>Location & Area</h2>
                 <div class="grid-3">
-                    <div class="metric">
-                        <span class="label">Address/Label</span>
-                        <p class="value" style="font-size:14px;">${payload.location?.label || 'Selected analysis location'}</p>
+                    <div class="metric-box">
+                        <span class="metric-label">Address/Label</span>
+                        <p class="metric-value tiny">${payload.location?.label || 'Selected analysis location'}</p>
                     </div>
-                    <div class="metric">
-                        <span class="label">Latitude, Longitude</span>
-                        <p class="value" style="font-size:14px;">${fmtLatLng(payload.location?.latitude, payload.location?.longitude)}</p>
+                    <div class="metric-box">
+                        <span class="metric-label">Latitude, Longitude</span>
+                        <p class="metric-value tiny">${fmtLatLng(payload.location?.latitude, payload.location?.longitude)}</p>
                     </div>
-                    <div class="metric">
-                        <span class="label">Radius (m)</span>
-                        <p class="value">${Number.isFinite(Number(payload.location?.radius)) ? Math.round(Number(payload.location.radius)) : 'N/A'}</p>
+                    <div class="metric-box">
+                        <span class="metric-label">Radius (m)</span>
+                        <p class="metric-value">${Number.isFinite(Number(payload.location?.radius)) ? Math.round(Number(payload.location.radius)) : 'N/A'}</p>
                     </div>
                     ${polygonBlock}
                 </div>
             `;
 
-            const categoryEntries = Object.entries(payload.categoryScores || {})
-                .filter(([name]) => !['yin_yang_balance', 'five_elements_harmony', 'qi_flow'].includes(name));
-
-            const five = payload.fiveElements || {};
-
+            // Scores Section
             scores.innerHTML = `
-                <h2 class="title">Score Details</h2>
-                <div class="grid-3" style="margin-bottom:10px;">
-                    <div class="metric"><span class="label">Final Score</span><p class="value">${safeNumber(payload.score?.final, 1)}</p></div>
-                    <div class="metric"><span class="label">Traditional Score</span><p class="value">${safeNumber(payload.score?.traditional, 1)}</p></div>
-                    <div class="metric"><span class="label">AI Score</span><p class="value">${payload.score?.ai == null ? 'N/A' : safeNumber(payload.score.ai, 1)}</p></div>
-                    <div class="metric"><span class="label">Yin-Yang Balance</span><p class="value">${safeNumber(payload.yinYangBalance, 1)}</p></div>
-                    <div class="metric"><span class="label">Qi Flow</span><p class="value">${safeNumber(payload.qiFlowScore, 1)}</p></div>
-                    <div class="metric"><span class="label">Five Elements Overall</span><p class="value">${safeNumber(five.overall_score, 1)}</p></div>
-                </div>
-
-                <h3 class="title" style="font-size:14px; margin-top: 0;">Five Elements</h3>
-                <div class="grid-3" style="margin-bottom:10px;">
-                    <div class="metric"><span class="label">Wood</span><p class="value">${safeNumber(five.wood, 0)}</p></div>
-                    <div class="metric"><span class="label">Fire</span><p class="value">${safeNumber(five.fire, 0)}</p></div>
-                    <div class="metric"><span class="label">Earth</span><p class="value">${safeNumber(five.earth, 0)}</p></div>
-                    <div class="metric"><span class="label">Metal</span><p class="value">${safeNumber(five.metal, 0)}</p></div>
-                    <div class="metric"><span class="label">Water</span><p class="value">${safeNumber(five.water, 0)}</p></div>
-                </div>
-
-                <h3 class="title" style="font-size:14px; margin-top: 0;">Category Breakdown</h3>
+                <h2>Score Details</h2>
+                <h3>Primary Metrics</h3>
                 <div class="grid-3">
-                    ${categoryEntries.map(([key, val]) => `
-                        <div class="metric">
-                            <span class="label">${key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</span>
-                            <p class="value">${safeNumber(val, 1)}</p>
+                    <div class="metric-box">
+                        <span class="metric-label">Final Score</span>
+                        <p class="metric-value">${safeNumber(payload.score?.final, 1)}</p>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Traditional Score</span>
+                        <p class="metric-value">${safeNumber(payload.score?.traditional, 1)}</p>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">AI Score</span>
+                        <p class="metric-value">${payload.score?.ai == null ? 'N/A' : safeNumber(payload.score.ai, 1)}</p>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Yin-Yang Balance</span>
+                        <p class="metric-value">${safeNumber(payload.yinYangBalance, 1)}</p>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Qi Flow</span>
+                        <p class="metric-value">${safeNumber(payload.qiFlowScore, 1)}</p>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Five Elements Overall</span>
+                        <p class="metric-value">${safeNumber(five.overall_score, 1)}</p>
+                    </div>
+                </div>
+
+                <h3>Individual Category Scores</h3>
+                <div class="grid-3">
+                    ${payload.individualCategories ? `
+                        <div class="metric-box">
+                            <span class="metric-label">Orientation</span>
+                            <p class="metric-value">${safeNumber(payload.individualCategories.orientation, 1)}</p>
                         </div>
-                    `).join('')}
+                        <div class="metric-box">
+                            <span class="metric-label">Building Harmony</span>
+                            <p class="metric-value">${safeNumber(payload.individualCategories.building_harmony, 1)}</p>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-label">Road Accessibility</span>
+                            <p class="metric-value">${safeNumber(payload.individualCategories.road_accessibility, 1)}</p>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-label">Environment</span>
+                            <p class="metric-value">${safeNumber(payload.individualCategories.environment, 1)}</p>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-label">Green Space</span>
+                            <p class="metric-value">${safeNumber(payload.individualCategories.green_space, 1)}</p>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-label">Water Element</span>
+                            <p class="metric-value">${safeNumber(payload.individualCategories.water_element, 1)}</p>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-label">Spiritual Energy</span>
+                            <p class="metric-value">${safeNumber(payload.individualCategories.spiritual_energy, 1)}</p>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <h3>Five Elements</h3>
+                <div class="grid-3">
+                    <div class="metric-box">
+                        <span class="metric-label">Wood</span>
+                        <p class="metric-value">${safeNumber(five.wood, 0)}</p>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Fire</span>
+                        <p class="metric-value">${safeNumber(five.fire, 0)}</p>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Earth</span>
+                        <p class="metric-value">${safeNumber(five.earth, 0)}</p>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Metal</span>
+                        <p class="metric-value">${safeNumber(five.metal, 0)}</p>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Water</span>
+                        <p class="metric-value">${safeNumber(five.water, 0)}</p>
+                    </div>
                 </div>
             `;
 
+            // Insights Section
             insights.innerHTML = `
-                <h2 class="title">Insights & Recommendations</h2>
+                <h2>Insights & Recommendations</h2>
                 <div class="grid-2">
                     <div>
-                        <h3 class="title" style="font-size:14px; margin-top:0;">Key Findings</h3>
-                        <ul class="list">
-                            ${(payload.explanations || []).length
-                                ? payload.explanations.map(item => `<li>${item}</li>`).join('')
-                                : '<li>No findings available.</li>'}
-                        </ul>
+                        <h3>Key Findings</h3>
+                        ${(payload.explanations || []).length > 0
+                            ? `<ul class="insights-list">${payload.explanations.map(item => `<li>${item}</li>`).join('')}</ul>`
+                            : '<p class="empty-state">No findings available.</p>'}
                     </div>
                     <div>
-                        <h3 class="title" style="font-size:14px; margin-top:0;">Recommendations</h3>
-                        <ul class="list">
-                            ${(payload.suggestions || []).length
-                                ? payload.suggestions.map(item => `<li>${item}</li>`).join('')
-                                : '<li>No recommendations available.</li>'}
-                        </ul>
+                        <h3>Recommendations</h3>
+                        ${(payload.suggestions || []).length > 0
+                            ? `<ul class="insights-list">${payload.suggestions.map(item => `<li>${item}</li>`).join('')}</ul>`
+                            : '<p class="empty-state">No recommendations available.</p>'}
                     </div>
                 </div>
             `;
         }
 
-        const payload = readPayload();
-        if (!payload) {
-            renderEmptyState();
+        // Function to ensure all content is rendered before printing
+        function triggerPrint() {
+            const shell = document.querySelector('.report-shell');
+            if (shell) {
+                void shell.offsetHeight;
+                requestAnimationFrame(function() {
+                    setTimeout(function() {
+                        window.print();
+                    }, 300);
+                });
+            }
+        }
+
+        // Initialize report
+        function initializeReport() {
+            const payload = readPayload();
+            if (!payload) {
+                renderEmptyState();
+            } else {
+                renderReport(payload);
+                triggerPrint();
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeReport);
         } else {
-            renderReport(payload);
+            initializeReport();
         }
     </script>
 </body>
